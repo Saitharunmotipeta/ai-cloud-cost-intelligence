@@ -7,7 +7,7 @@ from shared.events.cost_data_ingested_v1 import (
     CostDataIngestedEvent,
     CostDataIngestedPayload,
 )
-from app.core.broker import get_broker
+from .core.broker import get_broker
 
 app = FastAPI(title="Ingestion Service")
 
