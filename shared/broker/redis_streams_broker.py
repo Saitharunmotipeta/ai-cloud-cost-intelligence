@@ -36,6 +36,8 @@ class RedisStreamsBroker(BrokerInterface):
             await self._client.xadd(
                 name=stream,
                 fields={"data": event.to_json()},
+                maxlen=1000,
+                approximate=True,
             )
         except Exception as e:
             raise RuntimeError(f"Failed to publish event to {stream}") from e

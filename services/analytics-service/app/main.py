@@ -1,7 +1,24 @@
+import asyncio
+import socket
+
 from fastapi import FastAPI
 
-app = FastAPI()
+from app.core.broker import get_broker
+from app.workers.consumer import AnalyticsConsumer
+
+app = FastAPI(title="Analytics Service")
+
+broker = get_broker()
+consumer_name = f"{socket.gethostname()}"
+
+consumer = AnalyticsConsumer(broker, consumer_name)
+
+
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(consumer.start())
+
 
 @app.get("/health")
 async def health():
-    return {"status": "analytics alive"}
+    return {"status": "analytics-running"}
