@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from datetime import datetime, timezone
 from typing import Set
 
@@ -13,7 +14,10 @@ from shared.broker.interface import BrokerInterface
 
 STREAM_NAME = "cost_data_ingested_v1"
 OUTPUT_STREAM = "cost_data_ready_for_analysis_v1"
+DLQ_STREAM = "cost_data_dead_letter_v1"
 GROUP_NAME = "analytics-group-v1"
+
+logger = logging.getLogger()
 
 
 class AnalyticsConsumer:
@@ -38,7 +42,7 @@ class AnalyticsConsumer:
             await asyncio.sleep(0.1)
 
     async def handle_message(self, message_id: str, base_event: BaseEvent):
-        # Idempotency check
+
         if base_event.event_id in self.processed_events:
             await self.broker.acknowledge(STREAM_NAME, GROUP_NAME, message_id)
             return
@@ -62,13 +66,40 @@ class AnalyticsConsumer:
 
             await self.broker.publish(OUTPUT_STREAM, new_event)
 
+            logger.info(
+                "Processed cost_data_ingested_v1",
+                extra={
+                    "service": "analytics-service",
+                    "event_id": base_event.event_id,
+                    "correlation_id": base_event.correlation_id,
+                },
+            )
+
             self.processed_events.add(base_event.event_id)
 
             await self.broker.acknowledge(STREAM_NAME, GROUP_NAME, message_id)
 
-        except Exception:
+        except Exception as e:
+            logger.error(
+                f"Processing failed: {str(e)}",
+                extra={
+                    "service": "analytics-service",
+                    "event_id": base_event.event_id,
+                    "correlation_id": base_event.correlation_id,
+                },
+            )
+
             base_event.increment_retry()
 
             if base_event.retry_count >= 3:
-                # Future DLQ stream
+                logger.error(
+                    "Event moved to DLQ",
+                    extra={
+                        "service": "analytics-service",
+                        "event_id": base_event.event_id,
+                        "correlation_id": base_event.correlation_id,
+                    },
+                )
+
+                await self.broker.publish(DLQ_STREAM, base_event)
                 await self.broker.acknowledge(STREAM_NAME, GROUP_NAME, message_id)

@@ -8,10 +8,14 @@ from shared.events.cost_data_ingested_v1 import (
     CostDataIngestedPayload,
 )
 from .core.broker import get_broker
+from shared.observability.logging import configure_logging
+import logging
 
 app = FastAPI(title="Ingestion Service")
 
 broker = get_broker()
+
+logger = configure_logging("ingestion-service")
 
 STREAM_NAME = "cost_data_ingested_v1"
 
@@ -40,6 +44,14 @@ async def ingest_cost(data: IngestRequest):
         payload=payload,
     )
 
+    logger.info(
+        "Publishing cost_data_ingested_v1",
+        extra={
+            "service": "ingestion-service",
+            "event_id": event.event_id,
+            "correlation_id": event.correlation_id,
+        },
+    )
     await broker.publish(STREAM_NAME, event)
 
     return {
