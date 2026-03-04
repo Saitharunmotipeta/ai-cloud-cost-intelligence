@@ -44,15 +44,17 @@ async def ingest_cost(data: IngestRequest):
         payload=payload,
     )
 
+    await broker.publish(STREAM_NAME, event)
+
     logger.info(
-        "Publishing cost_data_ingested_v1",
+        "Published cost_data_ingested_v1",
         extra={
-            "service": "ingestion-service",
+            "service_name": "ingestion-service",
             "event_id": event.event_id,
             "correlation_id": event.correlation_id,
+            "stream": STREAM_NAME,
         },
     )
-    await broker.publish(STREAM_NAME, event)
 
     return {
         "status": "published",
