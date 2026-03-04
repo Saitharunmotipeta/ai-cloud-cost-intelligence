@@ -24,7 +24,7 @@ class RedisStreamsBroker(BrokerInterface):
     def __init__(self, redis_url: str) -> None:
         self._client = redis.from_url(
             redis_url,
-            decode_responses=True,  # return strings not bytes
+            decode_responses=True,
         )
 
     # ---------------------------------------------------------
@@ -56,10 +56,9 @@ class RedisStreamsBroker(BrokerInterface):
                 name=stream,
                 groupname=group_name,
                 id="0",
-                mkstream=True,  # create stream if not exists
+                mkstream=True,
             )
         except ResponseError as e:
-            # BUSYGROUP means group already exists (idempotent)
             if "BUSYGROUP" not in str(e):
                 raise
 
@@ -81,6 +80,7 @@ class RedisStreamsBroker(BrokerInterface):
         Returns:
             List[(message_id, BaseEvent)]
         """
+
         try:
             response = await self._client.xreadgroup(
                 groupname=group_name,
@@ -90,24 +90,45 @@ class RedisStreamsBroker(BrokerInterface):
                 block=block,
             )
 
-            if not response:
+        except ResponseError as e:
+
+            # Stream or group may have been deleted (FLUSHALL, etc.)
+            if "NOGROUP" in str(e) or "no such key" in str(e):
+
+                # Recreate stream + group automatically
+                try:
+                    await self._client.xgroup_create(
+                        name=stream,
+                        groupname=group_name,
+                        id="0",
+                        mkstream=True,
+                    )
+                except ResponseError:
+                    pass
+
                 return []
 
-            messages: List[Tuple[str, BaseEvent]] = []
-
-            for _, stream_messages in response:
-                for message_id, fields in stream_messages:
-                    raw_event = fields.get("data")
-                    if raw_event is None:
-                        continue
-
-                    event = BaseEvent.from_json(raw_event)
-                    messages.append((message_id, event))
-
-            return messages
+            raise RuntimeError("Failed while consuming events") from e
 
         except Exception as e:
             raise RuntimeError("Failed while consuming events") from e
+
+        if not response:
+            return []
+
+        messages: List[Tuple[str, BaseEvent]] = []
+
+        for _, stream_messages in response:
+            for message_id, fields in stream_messages:
+
+                raw_event = fields.get("data")
+                if raw_event is None:
+                    continue
+
+                event = BaseEvent.from_json(raw_event)
+                messages.append((message_id, event))
+
+        return messages
 
     # ---------------------------------------------------------
     # Acknowledgement

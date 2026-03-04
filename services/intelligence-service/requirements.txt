@@ -2,5 +2,5 @@ fastapi
 uvicorn
 pydantic
 redis
-google-generativeai
+google-genai
 python-dotenv
