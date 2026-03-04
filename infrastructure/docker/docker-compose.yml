@@ -1,6 +1,7 @@
 version: "3.9"
 
 services:
+
   redis:
     image: redis:7
     ports:
@@ -32,6 +33,19 @@ services:
     environment:
       REDIS_HOST: redis
       REDIS_PORT: 6379
+
+  intelligence-service:
+    build:
+      context: ../../
+      dockerfile: services/intelligence-service/Dockerfile
+    ports:
+      - "8003:8000"
+    depends_on:
+      - redis
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
 
 volumes:
   redis_data:
