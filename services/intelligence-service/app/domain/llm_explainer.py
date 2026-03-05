@@ -1,17 +1,18 @@
 import os
-from google import genai
-
+from groq import Groq
 
 class LLMExplainer:
 
     def __init__(self):
 
-        api_key = os.getenv("GEMINI_API_KEY")
+        api_key = os.getenv("GROQ_API_KEY")
 
         if not api_key:
-            raise RuntimeError("GEMINI_API_KEY environment variable not set")
+            raise RuntimeError("GROQ_API_KEY not set")
 
-        self.client = genai.Client(api_key=api_key)
+        self.client = Groq(api_key=api_key)
+
+        self.model = "llama-3.1-8b-instant"
 
     def generate_explanation(
         self,
@@ -24,25 +25,29 @@ class LLMExplainer:
         prompt = f"""
 You are a cloud FinOps expert.
 
-Explain the following cloud cost anomaly in ONE short sentence (max 25 words).
+Explain the following cloud cost anomaly in ONE short sentence.
 
 Service: {service}
 Expected Cost: {expected_cost}
 Actual Cost: {cost}
 Deviation: {deviation}
 
-Focus on likely operational causes.
+Focus on operational causes.
 """
 
         try:
 
-            response = self.client.models.generate_content(
-                model="gemini-1.5-flash",
-                contents=prompt,
-                request_options={"timeout": 5},
+            completion = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.2,
+                max_tokens=60,
             )
 
-            return response.text.strip()
+            return completion.choices[0].message.content.strip()
 
         except Exception as e:
+
             return f"LLM explanation unavailable: {str(e)}"
