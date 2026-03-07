@@ -101,12 +101,14 @@ class IntelligenceConsumer:
                 payload.deviation,
             )
 
-            insight_payload = CostInsightGeneratedPayload(**insight)
-
-            insight_event = CostInsightGeneratedEvent(
+            insight_event = CostInsightGeneratedEvent.create(
                 source="intelligence-service",
                 correlation_id=event.correlation_id,
-                payload=insight_payload,
+                account_id=payload.account_id,
+                service=payload.service,
+                severity=insight["severity"],
+                message=insight["message"],
+                recommendation=insight["recommendation"],
             )
 
             # publish insight event
