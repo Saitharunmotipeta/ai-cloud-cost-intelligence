@@ -157,6 +157,7 @@ Phase 6 – Cloud readiness (SQS, Lambda, Terraform)
 ## Status
 
 Under active development.
-Phase 1: Event backbone implementation.
+Phase 1: Event backbone implementation. (Completed)
+Phase 2: AI orchestration layer for reasoning.
 
 ---
