@@ -1,3 +1,5 @@
+version: "3.9"
+
 services:
 
   redis:
@@ -7,6 +9,26 @@ services:
     volumes:
       - redis_data:/data
     command: redis-server --appendonly yes
+    restart: unless-stopped
+
+
+  postgres:
+    image: postgres:15
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: costdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
 
   ingestion-service:
     build:
@@ -19,6 +41,8 @@ services:
     environment:
       REDIS_HOST: redis
       REDIS_PORT: 6379
+    restart: unless-stopped
+
 
   analytics-service:
     build:
@@ -31,6 +55,8 @@ services:
     environment:
       REDIS_HOST: redis
       REDIS_PORT: 6379
+    restart: unless-stopped
+
 
   intelligence-service:
     build:
@@ -45,6 +71,27 @@ services:
     environment:
       REDIS_HOST: redis
       REDIS_PORT: 6379
+    restart: unless-stopped
+
+
+  storage-service:
+    build:
+      context: ../../
+      dockerfile: services/storage-service/Dockerfile
+    ports:
+      - "8004:8000"
+    depends_on:
+      - redis
+      - postgres
+    env_file:
+      - ../../.env
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/costdb
+    restart: unless-stopped
+
 
 volumes:
   redis_data:
+  postgres_data:
