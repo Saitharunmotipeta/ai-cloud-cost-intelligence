@@ -11,25 +11,6 @@ services:
     command: redis-server --appendonly yes
     restart: unless-stopped
 
-
-  postgres:
-    image: postgres:15
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: costdb
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
-
   ingestion-service:
     build:
       context: ../../
@@ -39,7 +20,7 @@ services:
     depends_on:
       - redis
     env_file:
-      - ../../.env
+      - .env
     environment:
       REDIS_HOST: redis
       REDIS_PORT: 6379
@@ -55,7 +36,7 @@ services:
     depends_on:
       - redis
     env_file:
-      - ../../.env
+      - .env
     environment:
       REDIS_HOST: redis
       REDIS_PORT: 6379
@@ -71,7 +52,7 @@ services:
     depends_on:
       - redis
     env_file:
-      - ../../.env
+      - .env
     environment:
       REDIS_HOST: redis
       REDIS_PORT: 6379
@@ -85,18 +66,15 @@ services:
     ports:
       - "8004:8000"
     depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_started
+      - redis
     env_file:
-      - ../../.env
+      - .env
     environment:
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      DATABASE_URL: ${DATABASE_URL}
     restart: unless-stopped
 
 
 volumes:
   redis_data:
-  postgres_data:
