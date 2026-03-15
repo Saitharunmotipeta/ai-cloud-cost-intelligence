@@ -38,6 +38,8 @@ services:
       - "8001:8000"
     depends_on:
       - redis
+    env_file:
+      - ../../.env
     environment:
       REDIS_HOST: redis
       REDIS_PORT: 6379
@@ -52,6 +54,8 @@ services:
       - "8002:8000"
     depends_on:
       - redis
+    env_file:
+      - ../../.env
     environment:
       REDIS_HOST: redis
       REDIS_PORT: 6379
@@ -81,14 +85,15 @@ services:
     ports:
       - "8004:8000"
     depends_on:
-      - redis
-      - postgres
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
     env_file:
       - ../../.env
     environment:
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/costdb
     restart: unless-stopped
 
 

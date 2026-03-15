@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from uuid import UUID
 
 from fastapi import FastAPI
 from pydantic import BaseModel
@@ -21,7 +22,7 @@ STREAM_NAME = "cost_data_ingested_v1"
 
 
 class IngestRequest(BaseModel):
-    account_id: str
+    account_id: UUID
     service: str
     cost: float
 
@@ -33,7 +34,7 @@ async def ingest_cost(data: IngestRequest):
     """
 
     payload = CostDataIngestedPayload(
-        account_id=data.account_id,
+        account_id=str(data.account_id),
         service=data.service,
         cost=data.cost,
         usage_timestamp=datetime.now(timezone.utc),
