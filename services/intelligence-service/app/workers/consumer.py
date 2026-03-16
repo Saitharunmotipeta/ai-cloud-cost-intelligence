@@ -95,6 +95,9 @@ class IntelligenceConsumer:
 
             payload = event.payload
 
+            if payload.service == "DLQ_TEST":
+                raise Exception("Forced failure for DLQ testing")
+
             # generate insight using rule engine + Gemini
             insight = self.engine.generate_insight(
                 payload.account_id,
@@ -142,24 +145,34 @@ class IntelligenceConsumer:
                 },
             )
 
-            # retry logic
-            base_event.increment_retry()
+        base_event.increment_retry()
 
-            if base_event.retry_count >= 3:
+        if base_event.retry_count >= 3:
 
-                logger.error(
-                    "Event moved to DLQ",
-                    extra={
-                        "event_id": base_event.event_id,
-                        "correlation_id": base_event.correlation_id,
-                        "stream": DLQ_STREAM,
-                    },
-                )
+            logger.error(
+                "Event moved to DLQ",
+                extra={
+                    "event_id": base_event.event_id,
+                    "correlation_id": base_event.correlation_id,
+                    "stream": DLQ_STREAM,
+                },
+            )
 
-                await self.broker.publish(DLQ_STREAM, base_event)
+            await self.broker.publish(DLQ_STREAM, base_event)
 
-                await self.broker.acknowledge(
-                    STREAM_NAME,
-                    GROUP_NAME,
-                    message_id,
-                )
+            await self.broker.acknowledge(
+                STREAM_NAME,
+                GROUP_NAME,
+                message_id,
+            )
+
+            return
+
+        # retry only if retry_count < 3
+        await self.broker.publish(STREAM_NAME, base_event)
+
+        await self.broker.acknowledge(
+            STREAM_NAME,
+            GROUP_NAME,
+            message_id,
+        )

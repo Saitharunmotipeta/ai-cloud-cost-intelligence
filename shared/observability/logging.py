@@ -4,11 +4,13 @@ from datetime import datetime, timezone
 
 
 class JsonFormatter(logging.Formatter):
+
     def format(self, record: logging.LogRecord) -> str:
+
         log_record = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "level": record.levelname,
-            "service": record.service,
+            "service": getattr(record, "service", "unknown"),
             "message": record.getMessage(),
         }
 
@@ -22,16 +24,17 @@ class JsonFormatter(logging.Formatter):
 
 
 def configure_logging(service_name: str):
-    logger = logging.getLogger()
+
+    logger = logging.getLogger(service_name)
     logger.setLevel(logging.INFO)
 
-    handler = logging.StreamHandler()
-    handler.setFormatter(JsonFormatter())
+    if not logger.handlers:
+        handler = logging.StreamHandler()
+        handler.setFormatter(JsonFormatter())
+        logger.addHandler(handler)
 
-    logger.handlers.clear()
-    logger.addHandler(handler)
+    logger.propagate = False
 
-    # Attach service name to every log record
     old_factory = logging.getLogRecordFactory()
 
     def record_factory(*args, **kwargs):
