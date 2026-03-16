@@ -10,13 +10,18 @@ from shared.events.cost_insight_generated_v1 import (
 )
 
 from shared.broker.interface import BrokerInterface
+from shared.constants.streams import (
+    COST_ANOMALY_DETECTED_STREAM,
+    DEAD_LETTER_STREAM,
+    COST_INSIGHT_GENERATED_STREAM
+)
 
 from app.domain.insight_engine import InsightEngine
 
 
-STREAM_NAME = "cost_anomaly_detected_v1"
-OUTPUT_STREAM = "cost_insight_generated_v1"
-DLQ_STREAM = "cost_data_dead_letter_v1"
+STREAM_NAME = COST_ANOMALY_DETECTED_STREAM
+OUTPUT_STREAM = COST_INSIGHT_GENERATED_STREAM
+DLQ_STREAM = DEAD_LETTER_STREAM
 GROUP_NAME = "intelligence-group-v1"
 
 logger = logging.getLogger(__name__)
@@ -86,9 +91,7 @@ class IntelligenceConsumer:
         try:
 
             # reconstruct anomaly event
-            event = CostAnomalyDetectedEvent.model_validate(
-                base_event.model_dump()
-            )
+            event = CostAnomalyDetectedEvent.model_validate(base_event.model_dump())
 
             payload = event.payload
 
@@ -129,10 +132,10 @@ class IntelligenceConsumer:
             # acknowledge original message
             await self.broker.acknowledge(STREAM_NAME, GROUP_NAME, message_id)
 
-        except Exception:
+        except Exception as e:
 
             logger.exception(
-                "Insight generation failed",
+                f"Insight generation failed: {str(e)}",
                 extra={
                     "event_id": base_event.event_id,
                     "correlation_id": base_event.correlation_id,

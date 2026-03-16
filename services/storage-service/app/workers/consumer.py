@@ -11,9 +11,11 @@ from shared.broker.interface import BrokerInterface
 
 from app.core.database import SessionLocal
 from app.services.insight_repository import InsightRepository
+from shared.constants.streams import COST_INSIGHT_GENERATED_STREAM, DEAD_LETTER_STREAM
 
 
-STREAM_NAME = "cost_insight_generated_v1"
+STREAM_NAME = COST_INSIGHT_GENERATED_STREAM
+DLQ_STREAM = DEAD_LETTER_STREAM
 GROUP_NAME = "storage-group-v1"
 
 logger = logging.getLogger(__name__)
@@ -123,3 +125,15 @@ class StorageConsumer:
                     "event_id": base_event.event_id,
                 },
             )
+
+            base_event.increment_retry()
+
+            if base_event.retry_count >= 3:
+
+                await self.broker.publish(DLQ_STREAM, base_event)
+
+                await self.broker.acknowledge(
+                    STREAM_NAME,
+                    GROUP_NAME,
+                    message_id,
+                )

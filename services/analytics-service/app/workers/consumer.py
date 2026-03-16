@@ -14,14 +14,20 @@ from shared.events.cost_anomaly_detected_v1 import (
 )
 from shared.events.base_event import BaseEvent
 from shared.broker.interface import BrokerInterface
+from shared.constants.streams import (
+    COST_DATA_INGESTED_STREAM,
+    COST_DATA_READY_FOR_ANALYSIS_STREAM,
+    COST_ANOMALY_DETECTED_STREAM,
+    DEAD_LETTER_STREAM,
+)
 
 from app.domain.anomaly_detector import AnomalyDetector
 
 
-STREAM_NAME = "cost_data_ingested_v1"
-OUTPUT_STREAM = "cost_data_ready_for_analysis_v1"
-ANOMALY_STREAM = "cost_anomaly_detected_v1"
-DLQ_STREAM = "cost_data_dead_letter_v1"
+STREAM_NAME = COST_DATA_INGESTED_STREAM
+OUTPUT_STREAM = COST_DATA_READY_FOR_ANALYSIS_STREAM 
+ANOMALY_STREAM = COST_ANOMALY_DETECTED_STREAM
+DLQ_STREAM = DEAD_LETTER_STREAM
 GROUP_NAME = "analytics-group-v1"
 
 logger = logging.getLogger(__name__)
@@ -94,13 +100,13 @@ class AnalyticsConsumer:
             if result:
 
                 anomaly_payload = CostAnomalyDetectedPayload(
-                    account_id=event.payload.account_id,
-                    service=event.payload.service,
-                    cost=event.payload.cost,
-                    expected_cost=result["expected_cost"],
-                    deviation=result["deviation"],
-                    detected_at=datetime.now(timezone.utc),
-                )
+                account_id=event.payload.account_id,
+                service=event.payload.service,
+                cost=event.payload.cost,
+                expected_cost=result["expected_cost"],
+                deviation=result["deviation"],
+                detected_at=datetime.now(timezone.utc),
+            )
 
                 anomaly_event = CostAnomalyDetectedEvent(
                     source="analytics-service",
