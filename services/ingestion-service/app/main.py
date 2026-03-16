@@ -61,3 +61,16 @@ async def ingest_cost(data: IngestRequest):
         "status": "published",
         "event_id": event.event_id,
     }
+
+
+@app.get("/health")
+async def health():
+    return {"status": "ingestion-running"}
+
+
+@app.get("/metrics")
+async def metrics():
+    return {
+        "service": "ingestion-service",
+        "status": "running"
+    }

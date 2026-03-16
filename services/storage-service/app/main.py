@@ -23,3 +23,10 @@ async def startup_event():
 @app.get("/health")
 async def health():
     return {"status": "storage-running"}
+
+@app.get("/metrics")
+async def metrics():
+    return {
+        "service": "storage-service",
+        "status": "running"
+    }

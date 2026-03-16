@@ -27,3 +27,11 @@ async def startup_event():
 @app.get("/health")
 async def health():
     return {"status": "analytics-running"}
+
+
+@app.get("/metrics")
+async def metrics():
+    return {
+        "service": "analytics-service",
+        "status": "running"
+    }
