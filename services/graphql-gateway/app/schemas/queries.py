@@ -1,8 +1,8 @@
 import strawberry
 from typing import List
 
-from app.services.insight_service import get_insights_by_account, get_insights_paginated, get_insights_by_severity, get_recent_insights
-from app.schemas.types import InsightType
+from app.services.insight_service import get_insights_by_account, get_recent_insights, get_insights_paginated, get_insights_by_severity, get_service_summary, get_severity_breakdown, get_daily_insights
+from app.schemas.types import InsightType, ServiceSummaryType, SeverityBreakdownType, DailyInsightType
 
 
 @strawberry.type
@@ -82,3 +82,46 @@ class Query:
             )
             for i in insights
         ]
+
+
+    @strawberry.field
+    def service_summary(self, account_id: str) -> List[ServiceSummaryType]:
+
+        results = get_service_summary(account_id)
+
+        return [
+            ServiceSummaryType(
+                service=r["service"],
+                total_count=r["count"]
+            )
+            for r in results
+        ]
+
+
+    @strawberry.field
+    def severity_breakdown(self) -> List[SeverityBreakdownType]:
+
+        results = get_severity_breakdown()
+
+        return [
+            SeverityBreakdownType(
+                severity=r["severity"],
+                count=r["count"]
+            )
+            for r in results
+        ]
+    
+
+    @strawberry.field
+    def daily_insights(self) -> List[DailyInsightType]:
+
+        results = get_daily_insights()
+
+        return [
+            DailyInsightType(
+                date=str(r["date"]),
+                count=r["count"]
+            )
+            for r in results
+        ]
+    
