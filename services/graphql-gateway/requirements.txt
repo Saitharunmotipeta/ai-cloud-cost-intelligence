@@ -1,5 +1,5 @@
-fastapi
 uvicorn
+fastapi
 strawberry-graphql
 sqlalchemy
 psycopg2-binary
