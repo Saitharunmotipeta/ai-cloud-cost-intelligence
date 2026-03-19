@@ -1,25 +1,25 @@
-import { useEffect, useState } from "react";
-import { fetchInsights } from "../api/graphql/insights";
+import { useQuery } from "@apollo/client/react";
+import { GET_RECENT_INSIGHTS } from "../api/graphql/queries";
 
-export const useInsights = () => {
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+export const useInsights = (limit = 50) => {
+  const query = useQuery(GET_RECENT_INSIGHTS, {
+    variables: { limit },
+    errorPolicy: "all",
+  });
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const res = await fetchInsights();
-        setData(res);
-      } catch (err) {
-        setError(err.message || "Error fetching insights");
-      } finally {
-        setLoading(false);
+  const insights = query.data?.recentInsights ?? [];
+
+  const error = query.error
+    ? {
+        message: "Failed to load insights",
+        details: [query.error.message],
       }
-    };
+    : null;
 
-    load();
-  }, []);
-
-  return { data, loading, error };
+  return {
+    insights,
+    loading: query.loading,
+    error,
+    isEmpty: !query.loading && insights.length === 0,
+  };
 };

@@ -1,27 +1,40 @@
 import React, { useState } from 'react'
-import { useQuery } from '@apollo/client/react'
-import { GET_RECENT_INSIGHTS } from "../api/graphql/queries"
+import { useInsights } from "../hooks/useInsights"
 
 import InsightTable from '../components/InsightTable'
 
 function Insights() {
   const [selectedSeverity, setSelectedSeverity] = useState('ALL')
 
-  const { loading, error, data } = useQuery(GET_RECENT_INSIGHTS, {variables: { limit: 50 }})
+  const {
+    insights,
+    loading,
+    error,
+    isEmpty
+  } = useInsights(50)
 
+  // ✅ Full failure
   if (loading) return <div>Loading insights...</div>
-  if (error) return <div>Error loading insights</div>
 
-  const insights = data?.recentInsights || []
+  if (error && !insights.length) {
+    return <div>{error.message}</div>
+  }
 
   const filteredInsights =
     selectedSeverity === 'ALL'
       ? insights
-      : insights.filter(i => i.severity === selectedSeverity)
+      : insights.filter(i => i?.severity === selectedSeverity)
 
   return (
     <div className="insights">
       <h1>Cost Insights</h1>
+
+      {/* ✅ Partial failure */}
+      {error && (
+        <div style={{ color: "orange" }}>
+          ⚠️ Some insights may be missing
+        </div>
+      )}
 
       <div className="filters">
         <select
@@ -36,7 +49,11 @@ function Insights() {
         </select>
       </div>
 
-      <InsightTable insights={filteredInsights} />
+      {isEmpty ? (
+        <div>No insights available</div>
+      ) : (
+        <InsightTable insights={filteredInsights} />
+      )}
     </div>
   )
 }

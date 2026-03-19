@@ -37,7 +37,7 @@ function InsightTable({ insights }) {
               </td>
               <td>{insight.message}</td>
               <td>{insight.recommendation}</td>
-              <td>{new Date(insight.generated_at).toLocaleString()}</td>
+              <td>{insight.generatedAt}</td>
             </tr>
           ))}
         </tbody>
