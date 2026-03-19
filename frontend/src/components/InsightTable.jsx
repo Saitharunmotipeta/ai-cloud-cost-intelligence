@@ -24,8 +24,8 @@ function InsightTable({ insights }) {
           </tr>
         </thead>
         <tbody>
-          {insights.map((insight) => (
-            <tr key={insight.id}>
+          {insights.map((insight, index) => (
+            <tr key={insight.id || index}>
               <td>{insight.service}</td>
               <td>
                 <span
