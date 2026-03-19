@@ -193,3 +193,62 @@ html, body, #root {
   height: 100%;
   width: 100%;
 }
+
+/* shimmer animation */
+@keyframes shimmer {
+  0% {
+    background-position: -400px 0;
+  }
+  100% {
+    background-position: 400px 0;
+  }
+}
+
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    #eeeeee 25%,
+    #dddddd 37%,
+    #eeeeee 63%
+  );
+  background-size: 800px 100%;
+  animation: shimmer 1.4s infinite;
+}
+
+/* card */
+.skeleton-card {
+  padding: 16px;
+  border-radius: 8px;
+  background: #f5f5f5;
+}
+
+.skeleton-title {
+  height: 14px;
+  width: 60%;
+  margin-bottom: 10px;
+  border-radius: 4px;
+}
+
+.skeleton-value {
+  height: 24px;
+  width: 40%;
+  border-radius: 4px;
+}
+
+/* table */
+.skeleton-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.skeleton-cell {
+  height: 14px;
+  border-radius: 4px;
+  margin: 8px 0;
+}
+
+/* chart */
+.skeleton-chart {
+  height: 250px;
+  border-radius: 8px;
+}
