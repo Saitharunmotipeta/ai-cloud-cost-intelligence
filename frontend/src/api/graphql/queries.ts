@@ -29,3 +29,27 @@ export const GET_DAILY_INSIGHTS = gql`
     }
   }
 `;
+
+export const GET_ANOMALIES = gql`
+  query GetAnomalies {
+    anomalies {
+      service
+      message
+      recommendation
+      severity
+      generatedAt
+    }
+  }
+`;
+
+export const GET_INSIGHTS = gql`
+  query GetInsights {
+    insights {
+      service
+      message
+      recommendation
+      severity
+      generatedAt
+    }
+  }
+`;

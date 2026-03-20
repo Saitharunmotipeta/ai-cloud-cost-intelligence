@@ -52,7 +52,7 @@ function Insights() {
       {isEmpty ? (
         <div>No insights available</div>
       ) : (
-        <InsightTable insights={filteredInsights} />
+        <InsightTable insights={filteredInsights} loading={loading} error={error} />
       )}
     </div>
   )
