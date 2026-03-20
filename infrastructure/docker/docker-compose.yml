@@ -85,6 +85,12 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL}
 
-
+  frontend:
+    build:
+      context: ../../frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - graphql-gateway
 volumes:
   redis_data:
