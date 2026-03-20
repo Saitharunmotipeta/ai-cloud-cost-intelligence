@@ -5,45 +5,61 @@ import {
   GET_DAILY_INSIGHTS,
 } from "../api/graphql/queries";
 
-export const useDashboard = () => {
-  const insightsQuery = useQuery(GET_RECENT_INSIGHTS, {
-    variables: { limit: 10 },
-    errorPolicy: "all", // ✅ allow partial success
-  });
+import {
+  Insight,
+  Severity,
+  DailyInsight,
+} from "../types/dashboard";
 
-  const severityQuery = useQuery(GET_SEVERITY_BREAKDOWN, {
-    errorPolicy: "all",
-  });
+export const useDashboard = (timeRange: string = "7d") => {
+  const commonOptions = {
+    errorPolicy: "all" as const,
+    pollInterval: 10000,
+  };
 
-  const dailyQuery = useQuery(GET_DAILY_INSIGHTS, {
-    errorPolicy: "all",
-  });
+  const insightsQuery = useQuery<{ recentInsights: Insight[] }>(
+    GET_RECENT_INSIGHTS,
+    {
+      ...commonOptions,
+      variables: { limit: 10, timeRange },
+    }
+  );
 
-  // ✅ Safe data extraction
+  const severityQuery = useQuery<{ severityBreakdown: Severity[] }>(
+    GET_SEVERITY_BREAKDOWN,
+    {
+      ...commonOptions,
+      variables: { timeRange },
+    }
+  );
+
+  const dailyQuery = useQuery<{ dailyInsights: DailyInsight[] }>(
+    GET_DAILY_INSIGHTS,
+    {
+      ...commonOptions,
+      variables: { timeRange },
+    }
+  );
+
   const insights = insightsQuery.data?.recentInsights ?? [];
   const severity = severityQuery.data?.severityBreakdown ?? [];
   const daily = dailyQuery.data?.dailyInsights ?? [];
 
-  // ✅ Granular loading
   const loading =
     insightsQuery.loading ||
     severityQuery.loading ||
     dailyQuery.loading;
 
-  // ✅ Graceful error handling
   const errors = [
     insightsQuery.error,
     severityQuery.error,
     dailyQuery.error,
   ].filter(Boolean);
 
-  const hasError = errors.length > 0;
-
-  // ✅ Structured error (not raw Apollo error)
-  const error = hasError
+  const error = errors.length
     ? {
         message: "Some dashboard data failed to load",
-        details: errors.map((e) => e.message),
+        details: errors.map((e) => e?.message ?? "Unknown error")
       }
     : null;
 
@@ -53,8 +69,6 @@ export const useDashboard = () => {
     daily,
     loading,
     error,
-
-    // 🔥 optional advanced flags
     isPartial:
       (!insights.length || !severity.length || !daily.length) &&
       !loading,

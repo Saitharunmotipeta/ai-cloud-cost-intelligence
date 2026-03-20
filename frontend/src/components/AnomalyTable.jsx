@@ -1,5 +1,6 @@
 import React from "react";
 import SkeletonTable from "./skeletons/SkeletonTable";
+import { formatDate } from "../utils/formatDate";
 
 function AnomalyTable({ anomalies = [], loading = false, error = null }) {
 
@@ -74,7 +75,8 @@ function AnomalyTable({ anomalies = [], loading = false, error = null }) {
                   </span>
                 </td>
 
-                <td>{a.timestamp}</td>
+                {/* 🔥 FORMATTED */}
+                <td>{formatDate(a.timestamp)}</td>
               </tr>
             );
           })}

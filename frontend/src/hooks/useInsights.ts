@@ -2,11 +2,12 @@ import { useQuery } from "@apollo/client/react";
 import { GET_RECENT_INSIGHTS } from "../api/graphql/queries";
 import { InsightsResponse } from "../types/insight";
 
-export const useInsights = (limit = 50) => {
+export const useInsights = (limit = 50, timeRange: string = "7d") => {
   const query = useQuery<InsightsResponse>(GET_RECENT_INSIGHTS, {
-    variables: { limit },
+    variables: { limit, timeRange }, // 🔥 future ready
     errorPolicy: "all",
-    fetchPolicy: "cache-and-network", // ✅ upgrade
+    fetchPolicy: "cache-and-network",
+    pollInterval: 10000, // 🔥 live updates
   });
 
   const insights = query.data?.recentInsights ?? [];
@@ -14,7 +15,7 @@ export const useInsights = (limit = 50) => {
   const error = query.error
     ? {
         message: "Failed to load insights",
-        details: [query.error.message],
+        details: [query.error?.message ?? "Unknown error"],
       }
     : null;
 

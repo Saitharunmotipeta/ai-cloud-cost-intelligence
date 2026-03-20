@@ -368,3 +368,35 @@ html, body, #root {
 .empty-state {
   color: #777;
 }
+
+.app-container {
+  background: #f8f9fb;
+  min-height: 100vh;
+}
+
+/* TOP BAR */
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+}
+
+.page-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #333;
+}
+
+.time-filter {
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+  background: white;
+}
+
+/* MAIN */
+.main-content {
+  padding: 20px;
+}
+

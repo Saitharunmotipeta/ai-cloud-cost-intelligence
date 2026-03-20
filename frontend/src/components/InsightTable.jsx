@@ -1,5 +1,6 @@
 import React from 'react'
 import SkeletonTable from './skeletons/SkeletonTable'
+import { formatDate } from '../utils/formatDate'
 
 function InsightTable({ insights = [], loading = false, error = null }) {
 
@@ -59,7 +60,9 @@ function InsightTable({ insights = [], loading = false, error = null }) {
 
               <td className="truncate">{insight.message}</td>
               <td className="truncate">{insight.recommendation}</td>
-              <td>{insight.generatedAt}</td>
+
+              {/* 🔥 FIXED + FORMATTED */}
+              <td>{formatDate(insight.generated_at)}</td>
             </tr>
           ))}
         </tbody>
