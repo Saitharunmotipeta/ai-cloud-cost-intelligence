@@ -1,25 +1,28 @@
-import { useEffect, useState } from "react";
-import { fetchAnomalies } from "../api/graphql/insights";
+import { useQuery } from "@apollo/client/react";
+import { GET_ANOMALIES } from "../api/graphql/queries";
+import { GetAnomaliesResponse } from "../types/anomaly";
 
 export const useAnomalies = () => {
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const query = useQuery<GetAnomaliesResponse>(GET_ANOMALIES, {
+    errorPolicy: "all",
+    fetchPolicy: "cache-and-network",
+  });
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const res = await fetchAnomalies();
-        setData(res);
-      } catch (err) {
-        setError(err.message || "Error fetching anomalies");
-      } finally {
-        setLoading(false);
+  const anomalies = query.data?.anomalies ?? [];
+
+  const error = query.error
+    ? {
+        message: "Failed to load anomalies",
+        details: [query.error.message],
       }
-    };
+    : null;
 
-    load();
-  }, []);
+  const isEmpty = !query.loading && anomalies.length === 0;
 
-  return { data, loading, error };
+  return {
+    anomalies,
+    loading: query.loading,
+    error,
+    isEmpty,
+  };
 };

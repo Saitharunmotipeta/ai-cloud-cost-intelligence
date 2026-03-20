@@ -16,6 +16,7 @@ function Dashboard() {
     error,
     isPartial
   } = useDashboard()
+  // const loading = true
 
   if (error && !insights.length && !severity.length && !daily.length) {
     return <div>{error.message}</div>
@@ -46,13 +47,25 @@ function Dashboard() {
 
       <div className="charts-grid">
         <div>
-          <h2>Insights Over Time</h2>
-          {loading ? <SkeletonChart /> : <LineChart data={daily || []} />}
+          <h2 style={{ marginBottom: "10px" }}>Insights Over Time</h2>
+          {loading ? (
+              <SkeletonChart />
+            ) : daily.length === 0 ? (
+              <div className="empty-chart">No data available</div>
+            ) : (
+              <LineChart data={daily} />
+            )}
         </div>
 
         <div>
           <h2>Severity Breakdown</h2>
-          {loading ? <SkeletonChart /> : <PieChart data={severity || []} />}
+          {loading ? (
+              <SkeletonChart />
+            ) : severity.length === 0 ? (
+              <div className="empty-chart">No data available</div>
+            ) : (
+              <PieChart data={severity} />
+            )}
         </div>
       </div>
 

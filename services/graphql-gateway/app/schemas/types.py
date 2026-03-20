@@ -33,5 +33,13 @@ class SeverityBreakdownType:
 
 @strawberry.type
 class DailyInsightType:
-    date: str  # keep string for frontend compatibility
+    date: str  
     count: int
+
+@strawberry.type
+class AnomalyType:
+    service: str
+    expected_cost: float
+    actual_cost: float
+    deviation: float
+    timestamp: str

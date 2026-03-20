@@ -12,13 +12,7 @@ function Insights() {
     error,
     isEmpty
   } = useInsights(50)
-
-  // ✅ Full failure
-  if (loading) return <div>Loading insights...</div>
-
-  if (error && !insights.length) {
-    return <div>{error.message}</div>
-  }
+  // const loading = true
 
   const filteredInsights =
     selectedSeverity === 'ALL'
@@ -49,10 +43,17 @@ function Insights() {
         </select>
       </div>
 
-      {isEmpty ? (
+      {/* ❌ REMOVE page-level loading */}
+
+      {/* ✅ Let table handle loading */}
+      {isEmpty && !loading ? (
         <div>No insights available</div>
       ) : (
-        <InsightTable insights={filteredInsights} loading={loading} error={error} />
+        <InsightTable
+          insights={filteredInsights}
+          loading={loading}
+          error={error}
+        />
       )}
     </div>
   )

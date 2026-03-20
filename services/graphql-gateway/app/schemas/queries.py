@@ -9,12 +9,14 @@ from app.services.insight_service import (
     get_service_summary,
     get_severity_breakdown,
     get_daily_insights,
+    get_insights_from_db,
 )
 from app.schemas.types import (
     InsightType,
     ServiceSummaryType,
     SeverityBreakdownType,
     DailyInsightType,
+    AnomalyType,
 )
 
 # -------------------------------
@@ -174,3 +176,25 @@ class Query:
             )
             for r in results
         ]
+    
+    @strawberry.field
+    def anomalies(self) -> list[AnomalyType]:
+        # TEMP: derive from insights table (until real pipeline)
+
+        insights = get_insights_from_db()  # use your existing repo
+
+        anomalies = []
+
+        for i in insights:
+            if i.severity in ["CRITICAL", "HIGH"]:
+                anomalies.append(
+                    AnomalyType(
+                        service=i.service,
+                        expected_cost=100.0,   # placeholder logic
+                        actual_cost=150.0,
+                        deviation=50.0,
+                        timestamp=str(i.generated_at),
+                    )
+                )
+
+        return anomalies

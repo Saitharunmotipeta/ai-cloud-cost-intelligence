@@ -1,10 +1,11 @@
 export type Anomaly = {
-  event_id: string;
   service: string;
-  cost: number;
+  expectedCost: number;
+  actualCost: number;
   deviation: number;
+  timestamp: string;
 };
 
-export type AnomaliesResponse = {
+export type GetAnomaliesResponse = {
   anomalies: Anomaly[];
 };

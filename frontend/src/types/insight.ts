@@ -9,5 +9,5 @@ export type Insight = {
 };
 
 export type InsightsResponse = {
-  insights: Insight[];
+  recentInsights: Insight[]; // ✅ MUST match GraphQL response
 };

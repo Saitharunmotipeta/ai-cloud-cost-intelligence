@@ -69,7 +69,7 @@ function InsightTable({ insights = [], loading = false, error = null }) {
 
               <td>{insight.message}</td>
               <td>{insight.recommendation}</td>
-              <td>{insight.generatedAt}</td>
+              <td>{insight.generated_at}</td>
             </tr>
           ))}
         </tbody>

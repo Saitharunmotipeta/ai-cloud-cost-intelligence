@@ -23,6 +23,12 @@ function Navbar() {
           >
             Insights
           </Link>
+          <Link 
+            to="/anomalies"
+            className={`nav-link ${location.pathname === '/anomalies' ? 'active' : ''}`}
+          >
+            Anomalies
+          </Link>
         </div>
       </div>
     </nav>

@@ -125,3 +125,12 @@ def get_daily_insights():
         )
 
     return [{"date": r[0], "count": r[1]} for r in results]
+
+def get_insights_from_db(limit: int = 100):
+    with get_db() as db:
+        return (
+            db.query(Insight)
+            .order_by(Insight.generated_at.desc())
+            .limit(limit)
+            .all()
+        )

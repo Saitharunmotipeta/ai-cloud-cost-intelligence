@@ -34,10 +34,10 @@ export const GET_ANOMALIES = gql`
   query GetAnomalies {
     anomalies {
       service
-      message
-      recommendation
-      severity
-      generatedAt
+      expectedCost
+      actualCost
+      deviation
+      timestamp
     }
   }
 `;
