@@ -1,17 +1,60 @@
-import React from "react";
+import React, { useState } from "react";
 import { useAnomalies } from "../hooks/useAnomalies";
 import AnomalyTable from "../components/AnomalyTable";
 
 function Anomalies() {
   const { anomalies, loading, error } = useAnomalies();
-//   const loading = true;
+
+  const [selectedSeverity, setSelectedSeverity] = useState("ALL");
+  const [selectedDate, setSelectedDate] = useState("");
+
+  // 🔥 derive severity (same logic as table)
+  const getSeverity = (deviation) => {
+    if (deviation > 100) return "CRITICAL";
+    if (deviation > 50) return "HIGH";
+    if (deviation > 20) return "MEDIUM";
+    return "LOW";
+  };
+
+  // 🔥 filtering logic
+  const filteredAnomalies = anomalies.filter((a) => {
+    const severity = getSeverity(a.deviation);
+
+    const matchSeverity =
+      selectedSeverity === "ALL" || severity === selectedSeverity;
+
+    const matchDate =
+      !selectedDate || a.timestamp?.startsWith(selectedDate);
+
+    return matchSeverity && matchDate;
+  });
 
   return (
     <div className="anomalies">
       <h1>Cost Anomalies</h1>
 
+      {/* 🔥 FILTERS */}
+      <div className="filters">
+        <select
+          value={selectedSeverity}
+          onChange={(e) => setSelectedSeverity(e.target.value)}
+        >
+          <option value="ALL">All Severities</option>
+          <option value="CRITICAL">Critical</option>
+          <option value="HIGH">High</option>
+          <option value="MEDIUM">Medium</option>
+          <option value="LOW">Low</option>
+        </select>
+
+        <input
+          type="date"
+          value={selectedDate}
+          onChange={(e) => setSelectedDate(e.target.value)}
+        />
+      </div>
+
       <AnomalyTable
-        anomalies={anomalies}
+        anomalies={filteredAnomalies}
         loading={loading}
         error={error}
       />

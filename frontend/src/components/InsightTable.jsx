@@ -13,63 +13,53 @@ function InsightTable({ insights = [], loading = false, error = null }) {
     return colors[severity] || '#95a5a6'
   }
 
-  // ✅ 1. Loading state
-  if (loading) {
-    return <SkeletonTable rows={5} />
-  }
+  if (loading) return <SkeletonTable rows={5} />
 
-  // ✅ 2. Full error (no data)
   if (error && insights.length === 0) {
-    return (
-      <div style={{ color: "red" }}>
-        Failed to load insights
-      </div>
-    )
+    return <div className="error-text">Failed to load insights</div>
   }
 
-  // ✅ 3. Empty state
   if (!insights.length) {
-    return <div>No insights available</div>
+    return <div className="empty-state">No insights available</div>
   }
 
   return (
-    <div className="insight-table-container">
+    <div className="table-wrapper">
 
-      {/* ✅ 4. Partial error */}
       {error && (
-        <div style={{ color: "orange", marginBottom: "10px" }}>
+        <div className="warning-text">
           ⚠️ Some insights may be missing
         </div>
       )}
 
-      <table className="insight-table">
+      <table className="custom-table">
         <thead>
           <tr>
             <th>Service</th>
             <th>Severity</th>
             <th>Message</th>
             <th>Recommendation</th>
-            <th>Generated At</th>
+            <th>Generated</th>
           </tr>
         </thead>
 
         <tbody>
           {insights.map((insight, index) => (
-            <tr key={insight.id || `${insight.service}-${index}`}>
+            <tr key={insight.insight_id || `${insight.service}-${index}`}>
               <td>{insight.service}</td>
 
               <td>
                 <span
-                  className="severity-badge"
+                  className="badge"
                   style={{ backgroundColor: getSeverityColor(insight.severity) }}
                 >
                   {insight.severity}
                 </span>
               </td>
 
-              <td>{insight.message}</td>
-              <td>{insight.recommendation}</td>
-              <td>{insight.generated_at}</td>
+              <td className="truncate">{insight.message}</td>
+              <td className="truncate">{insight.recommendation}</td>
+              <td>{insight.generatedAt}</td>
             </tr>
           ))}
         </tbody>

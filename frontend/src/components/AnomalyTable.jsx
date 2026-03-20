@@ -20,40 +20,34 @@ function AnomalyTable({ anomalies = [], loading = false, error = null }) {
     return colors[severity] || "#95a5a6";
   };
 
-  // ✅ Loading
-  if (loading) {
-    return <SkeletonTable rows={5} />;
-  }
+  if (loading) return <SkeletonTable rows={5} />;
 
-  // ✅ Full error
   if (error && anomalies.length === 0) {
-    return <div style={{ color: "red" }}>Failed to load anomalies</div>;
+    return <div className="error-text">Failed to load anomalies</div>;
   }
 
-  // ✅ Empty
   if (!anomalies.length) {
-    return <div>No anomalies detected 🎉</div>;
+    return <div className="empty-state">No anomalies detected 🎉</div>;
   }
 
   return (
-    <div className="anomaly-table-container">
+    <div className="table-wrapper">
 
-      {/* ⚠️ Partial error */}
       {error && (
-        <div style={{ color: "orange", marginBottom: "10px" }}>
+        <div className="warning-text">
           ⚠️ Some anomalies may be missing
         </div>
       )}
 
-      <table className="anomaly-table">
+      <table className="custom-table">
         <thead>
           <tr>
             <th>Service</th>
-            <th>Expected Cost</th>
-            <th>Actual Cost</th>
+            <th>Expected</th>
+            <th>Actual</th>
             <th>Deviation</th>
             <th>Severity</th>
-            <th>Timestamp</th>
+            <th>Time</th>
           </tr>
         </thead>
 
@@ -67,16 +61,14 @@ function AnomalyTable({ anomalies = [], loading = false, error = null }) {
                 <td>${a.expectedCost}</td>
                 <td>${a.actualCost}</td>
 
-                <td style={{ color: "#e74c3c", fontWeight: "bold" }}>
+                <td className="deviation">
                   +${a.deviation}
                 </td>
 
                 <td>
                   <span
-                    className="severity-badge"
-                    style={{
-                      backgroundColor: getSeverityColor(severity),
-                    }}
+                    className="badge"
+                    style={{ backgroundColor: getSeverityColor(severity) }}
                   >
                     {severity}
                   </span>
