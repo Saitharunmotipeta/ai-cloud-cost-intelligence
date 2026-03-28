@@ -110,7 +110,10 @@ class IntelligenceConsumer:
 
             insight = {
                 "severity": result["severity"],
-                "message": result["message"],
+                "message": result.get(
+                    "message",
+                    "No detailed explanation generated for low severity anomaly."
+                ),
                 "recommendation": result["recommendation"],
             }
 
