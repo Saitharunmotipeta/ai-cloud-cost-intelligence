@@ -4,13 +4,17 @@ from typing import TypedDict
 class IntelligenceState(TypedDict):
     event: dict
 
-    # intermediate
+    # existing
     recommendation: str
     message: str
     severity: str
 
-    # raw values (for reuse)
     service: str
     cost: float
     expected_cost: float
     deviation: float
+
+    # 🆕 context fields
+    ratio: float
+    spike: bool
+    trend: str
