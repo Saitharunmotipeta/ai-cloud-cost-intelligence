@@ -122,7 +122,7 @@ Requirements:
 
 Run:
 
-docker-compose up --build
+docker-compose up --no-cache --build
 
 This will start:
 
