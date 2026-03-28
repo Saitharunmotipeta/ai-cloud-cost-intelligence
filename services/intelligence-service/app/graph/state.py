@@ -21,3 +21,10 @@ class IntelligenceState(TypedDict):
 
     # 🆕 classification
     anomaly_type: str
+
+    # 🆕 structured output
+    explanation: str
+    root_cause: str
+    action: str
+    confidence: str
+    impact: str

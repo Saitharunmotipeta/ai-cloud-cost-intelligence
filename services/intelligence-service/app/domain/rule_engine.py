@@ -1,53 +1,57 @@
-from typing import Dict
-
-
 class RuleEngine:
 
     def generate_recommendation(
         self,
-        service: str,
-        cost: float,
-        expected_cost: float,
-    ) -> Dict[str, str]:
+        service,
+        cost,
+        expected_cost,
+        anomaly_type,
+        trend,
+    ):
 
-        service = service.upper()
+        service = service.lower()
 
-        # Default recommendation
-        recommendation = "Review recent resource usage and configuration changes."
+        # 🔥 derive signals
+        deviation = cost - expected_cost
+        ratio = (deviation / expected_cost) if expected_cost else 0
 
-        if service == "EC2":
+        # 🔥 impact classification (VERY IMPORTANT)
+        if deviation > 1000 or ratio > 3:
+            impact = "critical"
+        elif deviation > 500 or ratio > 2:
+            impact = "high"
+        elif deviation > 100 or ratio > 1:
+            impact = "medium"
+        else:
+            impact = "low"
+
+        # 🔴 SPIKE
+        if anomaly_type == "spike":
+
+            if service == "ec2":
+                recommendation = (
+                    f"[{impact.upper()}] Sudden EC2 spike detected—check autoscaling, "
+                    "recent instance launches, or burst workloads immediately."
+                )
+
+            else:
+                recommendation = (
+                    f"[{impact.upper()}] Sudden cost spike detected—investigate scaling or deployment changes."
+                )
+
+        # 🟡 DRIFT
+        elif anomaly_type == "drift":
+
             recommendation = (
-                "Check autoscaling groups, recently launched EC2 instances, "
-                "or unexpected workload spikes."
+                f"[{impact.upper()}] Gradual cost increase—review long-running workloads and optimize usage."
             )
 
-        elif service == "S3":
-            recommendation = (
-                "Check S3 storage growth, large uploads, or lifecycle policy configuration."
-            )
-
-        elif service == "RDS":
-            recommendation = (
-                "Review database query load, instance scaling events, "
-                "or long-running queries."
-            )
-
-        elif service == "LAMBDA":
-            recommendation = (
-                "Check Lambda invocation spikes, retry storms, or new deployments."
-            )
-
-        elif service == "CLOUDFRONT":
-            recommendation = (
-                "Check traffic spikes, caching behavior, or large content delivery."
-            )
-
-        elif service == "EKS":
-            recommendation = (
-                "Check Kubernetes cluster scaling, pod autoscaling, "
-                "or increased container workloads."
-            )
+        # 🟢 NORMAL
+        else:
+            recommendation = "No significant anomaly detected—continue monitoring."
 
         return {
-            "recommendation": recommendation
+            "recommendation": recommendation,
+            "impact": impact,   # ✅ NEW
+            "ratio": ratio      # optional for downstream
         }
