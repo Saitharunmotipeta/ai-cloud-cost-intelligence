@@ -1,17 +1,17 @@
 import os
+import json
 from groq import Groq
+
 
 class LLMExplainer:
 
     def __init__(self):
-
         api_key = os.getenv("GROQ_API_KEY")
 
         if not api_key:
             raise RuntimeError("GROQ_API_KEY not set")
 
         self.client = Groq(api_key=api_key)
-
         self.model = "llama-3.1-8b-instant"
 
     def generate_explanation(
@@ -23,43 +23,59 @@ class LLMExplainer:
         anomaly_type,
         trend,
         ratio,
-    )->str:
+    ):
 
         prompt = f"""
-        You are a cloud cost optimization expert.
+You are a cloud cost optimization expert.
 
-        Analyze the anomaly:
+Analyze the anomaly:
 
-        Service: {service}
-        Actual Cost: {cost}
-        Expected Cost: {expected_cost}
-        Deviation: {deviation}
-        Anomaly Type: {anomaly_type}
-        Trend: {trend}
-        Change Ratio: {ratio}
+Service: {service}
+Actual Cost: {cost}
+Expected Cost: {expected_cost}
+Deviation: {deviation}
+Anomaly Type: {anomaly_type}
+Trend: {trend}
+Change Ratio: {ratio}
 
-        Instructions:
-        - Explain clearly in 2 sentences MAX
-        - Mention anomaly type
-        - Mention likely root cause
-        - Keep it concise and complete
-        - Do NOT exceed 50 words
+Return STRICT JSON (no extra text):
 
-        Output:
-        """
+{{
+  "explanation": "...",
+  "root_cause": "...",
+  "confidence": "low | medium | high"
+}}
+
+Rules:
+- Keep it concise
+- No extra text
+"""
+
         try:
-
             completion = self.client.chat.completions.create(
                 model=self.model,
-                messages=[
-                    {"role": "user", "content": prompt}
-                ],
+                messages=[{"role": "user", "content": prompt}],
                 temperature=0.2,
-                max_tokens=60,
+                max_tokens=80,
             )
 
-            return completion.choices[0].message.content.strip()
+            text = completion.choices[0].message.content.strip()
+
+            # 🔥 SAFE PARSE
+            try:
+                data = json.loads(text)
+            except Exception:
+                data = {
+                    "explanation": "AI response parsing failed",
+                    "root_cause": "Unstructured output from model",
+                    "confidence": "low"
+                }
+
+            return data
 
         except Exception as e:
-
-            return f"LLM explanation unavailable: {str(e)}"
+            return {
+                "explanation": "AI explanation unavailable",
+                "root_cause": str(e),
+                "confidence": "low"
+            }

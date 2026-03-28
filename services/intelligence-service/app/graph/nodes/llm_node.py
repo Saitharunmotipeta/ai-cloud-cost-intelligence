@@ -11,7 +11,7 @@ def llm_node(state):
         try:
             llm = LLMExplainer()
 
-            explanation = llm.generate_explanation(
+            result = llm.generate_explanation(
                 service=state["service"],
                 cost=state["cost"],
                 expected_cost=state["expected_cost"],
@@ -21,17 +21,21 @@ def llm_node(state):
                 ratio=state["ratio"],
             )
 
-            return {"message": explanation}
+            return {
+                "explanation": result["explanation"],
+                "root_cause": result["root_cause"],
+                "confidence": result["confidence"],
+            }
 
         except Exception as e:
             print(f"⚠️ LLM attempt {attempt+1} failed:", str(e))
 
             if attempt < max_retries:
                 time.sleep(delay)
-            else:
-                break
 
-    # 🔥 fallback response
+    # 🔥 CONSISTENT fallback
     return {
-        "message": "Unable to generate AI explanation. Please review resource usage manually."
+        "explanation": "AI explanation unavailable",
+        "root_cause": "LLM failed after retries",
+        "confidence": "low"
     }
