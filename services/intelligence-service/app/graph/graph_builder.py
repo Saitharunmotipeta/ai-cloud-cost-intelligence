@@ -6,6 +6,7 @@ from .nodes.llm_node import llm_node
 from .nodes.severity_node import severity_node
 from .nodes.context_node import context_node
 from .router import route_after_severity
+from .nodes.classification_node import classification_node
 
 
 def build_graph():
@@ -17,12 +18,15 @@ def build_graph():
     builder.add_node("rule", rule_node)
     builder.add_node("severity_node", severity_node)
     builder.add_node("llm_node", llm_node)
+    builder.add_node("classification", classification_node)
 
     # ✅ NEW entry point
     builder.set_entry_point("context")
 
+
     # ✅ flow
-    builder.add_edge("context", "rule")
+    builder.add_edge("context", "classification")
+    builder.add_edge("classification", "rule")
     builder.add_edge("rule", "severity_node")
 
     # ✅ conditional flow

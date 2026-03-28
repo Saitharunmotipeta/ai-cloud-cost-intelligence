@@ -18,3 +18,6 @@ class IntelligenceState(TypedDict):
     ratio: float
     spike: bool
     trend: str
+
+    # 🆕 classification
+    anomaly_type: str
