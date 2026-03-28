@@ -17,6 +17,7 @@ from shared.constants.streams import (
 )
 
 from app.domain.insight_engine import InsightEngine
+from app.graph.graph_builder import build_graph
 
 
 STREAM_NAME = COST_ANOMALY_DETECTED_STREAM
@@ -37,8 +38,7 @@ class IntelligenceConsumer:
         # idempotency protection
         self.processed_events: Set[str] = set()
 
-        # insight engine (rule + Gemini)
-        self.engine = InsightEngine()
+        self.graph = build_graph()
 
     async def start(self):
 
@@ -98,14 +98,21 @@ class IntelligenceConsumer:
             if payload.service == "DLQ_TEST":
                 raise Exception("Forced failure for DLQ testing")
 
-            # generate insight using rule engine + Gemini
-            insight = self.engine.generate_insight(
-                payload.account_id,
-                payload.service,
-                payload.cost,
-                payload.expected_cost,
-                payload.deviation,
-            )
+            result = await self.graph.ainvoke({
+                "event": {
+                    "account_id": payload.account_id,
+                    "service": payload.service,
+                    "cost": payload.cost,
+                    "expected_cost": payload.expected_cost,
+                    "deviation": payload.deviation,
+                }
+            })
+
+            insight = {
+                "severity": result["severity"],
+                "message": result["message"],
+                "recommendation": result["recommendation"],
+            }
 
             insight_event = CostInsightGeneratedEvent.create(
                 source="intelligence-service",

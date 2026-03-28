@@ -3,6 +3,14 @@ import socket
 import logging
 
 from fastapi import FastAPI
+from dotenv import load_dotenv
+import os
+
+load_dotenv(
+    os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "../../../infrastructure/docker/.env")
+    )
+)
 
 from app.core.broker import get_broker
 from app.workers.consumer import IntelligenceConsumer
