@@ -28,3 +28,8 @@ class IntelligenceState(TypedDict):
     action: str
     confidence: str
     impact: str
+
+    # 🆕 historical context
+    past_avg_cost: float
+    historical_trend: str
+    repeat_anomaly: bool

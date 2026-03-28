@@ -23,6 +23,8 @@ class LLMExplainer:
         anomaly_type,
         trend,
         ratio,
+        historical_trend,
+        repeat_anomaly,
     ):
 
         prompt = f"""
@@ -37,6 +39,8 @@ Deviation: {deviation}
 Anomaly Type: {anomaly_type}
 Trend: {trend}
 Change Ratio: {ratio}
+Historical Trend: {historical_trend}
+Repeated Anomaly: {repeat_anomaly}
 
 Return STRICT JSON (no extra text):
 
@@ -47,6 +51,7 @@ Return STRICT JSON (no extra text):
 }}
 
 Rules:
+- Use historical context if relevant
 - Keep it concise
 - No extra text
 """

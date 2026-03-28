@@ -7,6 +7,7 @@ from .nodes.severity_node import severity_node
 from .nodes.context_node import context_node
 from .router import route_after_severity
 from .nodes.classification_node import classification_node
+from .nodes.historical_node import historical_node
 
 
 def build_graph():
@@ -19,13 +20,15 @@ def build_graph():
     builder.add_node("severity_node", severity_node)
     builder.add_node("llm_node", llm_node)
     builder.add_node("classification", classification_node)
+    builder.add_node("historical", historical_node)
 
     # ✅ NEW entry point
     builder.set_entry_point("context")
 
 
     # ✅ flow
-    builder.add_edge("context", "classification")
+    builder.add_edge("context", "historical")
+    builder.add_edge("historical", "classification")
     builder.add_edge("classification", "rule")
     builder.add_edge("rule", "severity_node")
 

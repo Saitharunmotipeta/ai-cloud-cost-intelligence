@@ -19,6 +19,8 @@ def llm_node(state):
                 anomaly_type=state["anomaly_type"],
                 trend=state["trend"],
                 ratio=state["ratio"],
+                historical_trend=state["historical_trend"],
+                repeat_anomaly=state["repeat_anomaly"],
             )
 
             return {
