@@ -16,25 +16,37 @@ class LLMExplainer:
 
     def generate_explanation(
         self,
-        service: str,
-        cost: float,
-        expected_cost: float,
-        deviation: float,
-    ) -> str:
+        service,
+        cost,
+        expected_cost,
+        deviation,
+        anomaly_type,
+        trend,
+        ratio,
+    )->str:
 
         prompt = f"""
-You are a cloud FinOps expert.
+        You are a cloud cost optimization expert.
 
-Explain the following cloud cost anomaly in ONE short sentence.
+        Analyze the anomaly:
 
-Service: {service}
-Expected Cost: {expected_cost}
-Actual Cost: {cost}
-Deviation: {deviation}
+        Service: {service}
+        Actual Cost: {cost}
+        Expected Cost: {expected_cost}
+        Deviation: {deviation}
+        Anomaly Type: {anomaly_type}
+        Trend: {trend}
+        Change Ratio: {ratio}
 
-Focus on operational causes.
-"""
+        Instructions:
+        - Explain clearly in 2 sentences MAX
+        - Mention anomaly type
+        - Mention likely root cause
+        - Keep it concise and complete
+        - Do NOT exceed 50 words
 
+        Output:
+        """
         try:
 
             completion = self.client.chat.completions.create(

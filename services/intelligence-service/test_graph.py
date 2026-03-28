@@ -19,9 +19,9 @@ def run_test():
         "event": {
             "account_id": "test-123",
             "service": "EC2",
-            "cost": 100,
+            "cost": 300,
             "expected_cost": 100,
-            "deviation": 10,
+            "deviation": 200,
         }
     })
 

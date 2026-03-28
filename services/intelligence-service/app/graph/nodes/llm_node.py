@@ -12,10 +12,13 @@ def llm_node(state):
             llm = LLMExplainer()
 
             explanation = llm.generate_explanation(
-                state["service"],
-                state["cost"],
-                state["expected_cost"],
-                state["deviation"],
+                service=state["service"],
+                cost=state["cost"],
+                expected_cost=state["expected_cost"],
+                deviation=state["deviation"],
+                anomaly_type=state["anomaly_type"],
+                trend=state["trend"],
+                ratio=state["ratio"],
             )
 
             return {"message": explanation}
