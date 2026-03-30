@@ -6,6 +6,15 @@ from sqlalchemy import func, cast, Date
 from app.core.database import SessionLocal
 from app.models.insight import Insight
 
+import time
+
+_cache = {
+    "data": None,
+    "timestamp": 0
+}
+
+CACHE_TTL = 10  # seconds
+
 
 # -------------------------------
 # DB SESSION MANAGER (CRITICAL)
@@ -134,3 +143,24 @@ def get_insights_from_db(limit: int = 100):
             .limit(limit)
             .all()
         )
+        
+def get_all_insights():
+
+    now = time.time()
+
+    # ✅ return cached
+    if _cache["data"] and now - _cache["timestamp"] < CACHE_TTL:
+        return _cache["data"]
+
+    db = SessionLocal()
+    insights = db.query(Insight).all()
+
+    result = insights
+
+    db.close()
+
+    # ✅ store cache
+    _cache["data"] = result
+    _cache["timestamp"] = now
+
+    return result

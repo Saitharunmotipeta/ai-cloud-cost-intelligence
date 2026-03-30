@@ -7,14 +7,17 @@ from datetime import datetime
 # -------------------------------
 @strawberry.type
 class InsightType:
-    id: strawberry.ID  # better than raw str
+    id: strawberry.ID
     account_id: strawberry.ID
     service: str
+    anomaly_type: str
     severity: str
-    message: str
-    recommendation: str
+    impact: str
+    explanation: str
+    root_cause: str
+    action: str
+    confidence: str
     generated_at: datetime
-
 
 # -------------------------------
 # AGGREGATION TYPES

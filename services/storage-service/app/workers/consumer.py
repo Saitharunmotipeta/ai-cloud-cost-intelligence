@@ -93,9 +93,20 @@ class StorageConsumer:
                 insight_id=payload.insight_id,
                 account_id=payload.account_id,
                 service=payload.service,
+
                 severity=payload.severity,
-                message=payload.message,
-                recommendation=payload.recommendation,
+                impact=getattr(payload, "impact", "medium"),
+                anomaly_type=getattr(payload, "anomaly_type", "unknown"),
+
+                explanation=getattr(payload, "explanation", None),
+                root_cause=getattr(payload, "root_cause", None),
+                action=getattr(payload, "recommendation", None),
+                confidence=getattr(payload, "confidence", "low"),
+
+                # fallback (optional)
+                message=getattr(payload, "message", None),
+                recommendation=getattr(payload, "recommendation", None),
+
                 generated_at=payload.generated_at,
             )
 

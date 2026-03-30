@@ -59,9 +59,16 @@ def map_to_type(i) -> InsightType:
         id=str(i.id),
         account_id=str(i.account_id),
         service=i.service,
+
+        anomaly_type=i.anomaly_type or "unknown",
         severity=i.severity,
-        message=i.message,
-        recommendation=i.recommendation,
+        impact=i.impact or "medium",
+
+        explanation=i.explanation or i.message or "No explanation available",
+        root_cause=i.root_cause or "Not identified",
+        action=i.action or i.recommendation or "No action provided",
+        confidence=i.confidence or "low",
+
         generated_at=i.generated_at,
     )
 
@@ -186,7 +193,7 @@ class Query:
         anomalies = []
 
         for i in insights:
-            if i.severity in ["CRITICAL", "HIGH"]:
+            if i.severity in ["CRITICAL", "HIGH"] or i.anomaly_type == "spike":
                 anomalies.append(
                     AnomalyType(
                         service=i.service,
