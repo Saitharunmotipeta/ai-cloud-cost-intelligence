@@ -7,7 +7,7 @@ export const useInsights = (limit = 50, timeRange: string = "7d") => {
     variables: { limit, timeRange }, // 🔥 future ready
     errorPolicy: "all",
     fetchPolicy: "cache-and-network",
-    pollInterval: 10000, // 🔥 live updates
+    pollInterval: 360000, // 🔥 live updates
   });
 
   const insights = query.data?.recentInsights ?? [];

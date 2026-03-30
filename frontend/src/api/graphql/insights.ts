@@ -12,19 +12,21 @@ export const fetchInsights = async (limit = 50) => {
   const { data } = await client.query<InsightsResponse>({
     query: GET_RECENT_INSIGHTS,
     variables: { limit },
+    fetchPolicy: "network-only",
   });
 
   if (!data) {
     throw new Error("No data received from insights query");
   }
 
-  return data.recentInsights; // ✅ aligned with GraphQL
+  return data.recentInsights;
 };
 
-// ✅ Anomalies (kept here based on your structure)
+// ✅ Anomalies
 export const fetchAnomalies = async () => {
   const { data } = await client.query<GetAnomaliesResponse>({
     query: GET_ANOMALIES,
+    fetchPolicy: "network-only", // 🔥 important
   });
 
   if (!data) {

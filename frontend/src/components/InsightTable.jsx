@@ -14,6 +14,15 @@ function InsightTable({ insights = [], loading = false, error = null }) {
     return colors[severity] || '#95a5a6'
   }
 
+  const getImpactColor = (impact) => {
+    const colors = {
+      high: '#e74c3c',
+      medium: '#f39c12',
+      low: '#27ae60'
+    }
+    return colors[impact?.toLowerCase()] || '#95a5a6'
+  }
+
   if (loading) return <SkeletonTable rows={5} />
 
   if (error && insights.length === 0) {
@@ -38,15 +47,20 @@ function InsightTable({ insights = [], loading = false, error = null }) {
           <tr>
             <th>Service</th>
             <th>Severity</th>
-            <th>Message</th>
-            <th>Recommendation</th>
+            <th>Type</th>
+            <th>Impact</th>
+            <th>Explanation</th>
+            <th>Root Cause</th>
+            <th>Action</th>
+            <th>Confidence</th>
             <th>Generated</th>
           </tr>
         </thead>
 
         <tbody>
           {insights.map((insight, index) => (
-            <tr key={insight.insight_id || `${insight.service}-${index}`}>
+            <tr key={insight.id || `${insight.service}-${index}`}>
+
               <td>{insight.service}</td>
 
               <td>
@@ -58,11 +72,33 @@ function InsightTable({ insights = [], loading = false, error = null }) {
                 </span>
               </td>
 
-              <td className="truncate">{insight.message}</td>
-              <td className="truncate">{insight.recommendation}</td>
+              <td>{insight.anomalyType || 'unknown'}</td>
 
-              {/* 🔥 FIXED + FORMATTED */}
+              <td>
+                <span
+                  className="badge"
+                  style={{ backgroundColor: getImpactColor(insight.impact) }}
+                >
+                  {insight.impact}
+                </span>
+              </td>
+
+              <td className="truncate">
+                {insight.explanation || insight.message}
+              </td>
+
+              <td className="truncate">
+                {insight.rootCause || 'N/A'}
+              </td>
+
+              <td className="truncate">
+                {insight.action || insight.recommendation}
+              </td>
+
+              <td>{insight.confidence}</td>
+
               <td>{formatDate(insight.generated_at)}</td>
+
             </tr>
           ))}
         </tbody>
