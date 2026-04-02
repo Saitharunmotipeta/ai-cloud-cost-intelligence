@@ -2,62 +2,63 @@ import React, { useState } from 'react'
 import { useInsights } from "../hooks/useInsights"
 
 import InsightTable from '../components/InsightTable'
+import FilterBar from "../components/FilterBar";
 
 function Insights() {
-  const [selectedSeverity, setSelectedSeverity] = useState('ALL')
-  const [selectedDate, setSelectedDate] = useState("")
 
   const {
-    insights,
+    insights = [],
     loading,
     error,
     isEmpty
   } = useInsights(50)
 
-  // 🔥 Filtering logic (severity + date)
+  // ✅ Single unified filter state
+  const [filters, setFilters] = useState({
+    severity: "ALL",
+    service: "",
+    date: ""
+  });
+
+  // ✅ Safe (after insights is available)
+  const services = [...new Set(insights.map(i => i.service))];
+
+  // 🔥 Unified filtering logic
   const filteredInsights = insights.filter((i) => {
+
     const matchSeverity =
-      selectedSeverity === 'ALL' || i?.severity === selectedSeverity
+      filters.severity === "ALL" || i?.severity === filters.severity;
+
+    const matchService =
+      !filters.service || i?.service === filters.service;
 
     const matchDate =
-      !selectedDate ||
-      i?.generated_at?.startsWith(selectedDate)
+      !filters.date ||
+      i?.generatedAt?.startsWith(filters.date) ||
+      i?.generated_at?.startsWith(filters.date);
 
-    return matchSeverity && matchDate
-  })
+    return matchSeverity && matchService && matchDate;
+  });
 
   return (
     <div className="insights">
       <h1>Cost Insights</h1>
 
-      {/* ✅ Partial failure */}
+      {/* ⚠️ Partial failure */}
       {error && (
         <div style={{ color: "orange" }}>
           ⚠️ Some insights may be missing
         </div>
       )}
 
-      {/* 🔥 FILTERS */}
-      <div className="filters">
-        <select
-          value={selectedSeverity}
-          onChange={(e) => setSelectedSeverity(e.target.value)}
-        >
-          <option value="ALL">All</option>
-          <option value="CRITICAL">Critical</option>
-          <option value="HIGH">High</option>
-          <option value="MEDIUM">Medium</option>
-          <option value="LOW">Low</option>
-        </select>
+      {/* ✅ FILTER BAR (single source of truth) */}
+      <FilterBar
+        filters={filters}
+        setFilters={setFilters}
+        services={services}
+      />
 
-        <input
-          type="date"
-          value={selectedDate}
-          onChange={(e) => setSelectedDate(e.target.value)}
-        />
-      </div>
-
-      {/* ✅ Table handles loading */}
+      {/* ✅ Table */}
       {isEmpty && !loading ? (
         <div>No insights available</div>
       ) : (

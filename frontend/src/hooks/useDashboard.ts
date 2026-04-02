@@ -1,4 +1,5 @@
 import { useQuery } from "@apollo/client/react";
+
 import {
   GET_RECENT_INSIGHTS,
   GET_SEVERITY_BREAKDOWN,
@@ -11,13 +12,37 @@ import {
   DailyInsight,
 } from "../types/dashboard";
 
+
+// ✅ GraphQL Response Types
+type InsightsResponse = {
+  recentInsights: Insight[];
+};
+
+type SeverityResponse = {
+  severityBreakdown: Severity[];
+};
+
+type DailyResponse = {
+  dailyInsights: DailyInsight[];
+};
+
+
 export const useDashboard = (timeRange: string = "7d") => {
+
   const commonOptions = {
     errorPolicy: "all" as const,
-    pollInterval: 10000,
+
+    // 🔥 optimized polling (not too aggressive)
+    pollInterval: 30000,
+
+    // 🔥 caching strategy
+    fetchPolicy: "cache-and-network" as const,
+    nextFetchPolicy: "cache-first" as const,
   };
 
-  const insightsQuery = useQuery<{ recentInsights: Insight[] }>(
+
+  // 🔹 Insights Query
+  const insightsQuery = useQuery<InsightsResponse>(
     GET_RECENT_INSIGHTS,
     {
       ...commonOptions,
@@ -25,7 +50,9 @@ export const useDashboard = (timeRange: string = "7d") => {
     }
   );
 
-  const severityQuery = useQuery<{ severityBreakdown: Severity[] }>(
+
+  // 🔹 Severity Breakdown Query
+  const severityQuery = useQuery<SeverityResponse>(
     GET_SEVERITY_BREAKDOWN,
     {
       ...commonOptions,
@@ -33,7 +60,9 @@ export const useDashboard = (timeRange: string = "7d") => {
     }
   );
 
-  const dailyQuery = useQuery<{ dailyInsights: DailyInsight[] }>(
+
+  // 🔹 Daily Insights Query
+  const dailyQuery = useQuery<DailyResponse>(
     GET_DAILY_INSIGHTS,
     {
       ...commonOptions,
@@ -41,27 +70,35 @@ export const useDashboard = (timeRange: string = "7d") => {
     }
   );
 
+
+  // ✅ Safe Data Extraction
   const insights = insightsQuery.data?.recentInsights ?? [];
   const severity = severityQuery.data?.severityBreakdown ?? [];
   const daily = dailyQuery.data?.dailyInsights ?? [];
 
+
+  // ✅ Combined Loading State
   const loading =
     insightsQuery.loading ||
     severityQuery.loading ||
     dailyQuery.loading;
 
+
+  // ✅ Combined Error Handling
   const errors = [
     insightsQuery.error,
     severityQuery.error,
     dailyQuery.error,
   ].filter(Boolean);
 
+
   const error = errors.length
     ? {
         message: "Some dashboard data failed to load",
-        details: errors.map((e) => e?.message ?? "Unknown error")
+        details: errors.map((e) => e?.message ?? "Unknown error"),
       }
     : null;
+
 
   return {
     insights,
@@ -69,6 +106,8 @@ export const useDashboard = (timeRange: string = "7d") => {
     daily,
     loading,
     error,
+
+    // 🔥 Partial failure detection
     isPartial:
       (!insights.length || !severity.length || !daily.length) &&
       !loading,
