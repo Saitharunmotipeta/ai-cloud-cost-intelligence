@@ -2,7 +2,7 @@ import React from 'react'
 import SkeletonTable from './skeletons/SkeletonTable'
 import { formatDate } from '../utils/formatDate'
 
-function InsightTable({ insights = [], loading = false, error = null }) {
+function InsightTable({ insights = [], loading = false, error = null, newIds = new Set() }) {
 
   const getSeverityColor = (severity) => {
     const colors = {
@@ -59,8 +59,8 @@ function InsightTable({ insights = [], loading = false, error = null }) {
 
         <tbody>
           {insights.map((insight, index) => (
-            <tr key={insight.id || `${insight.service}-${index}`}>
-
+            <tr key={insight.id || `${insight.service}-${index}`} className={newIds.has(insight.id) ? "new-row" : ""}>
+                  
               <td>{insight.service}</td>
 
               <td>
@@ -84,6 +84,9 @@ function InsightTable({ insights = [], loading = false, error = null }) {
               </td>
 
               <td className="truncate">
+                {newIds.has(insight.id) && (
+                  <span className="new-badge">NEW</span>
+                )}
                 {insight.explanation || insight.message}
               </td>
 
