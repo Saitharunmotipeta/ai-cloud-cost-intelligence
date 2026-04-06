@@ -7,7 +7,7 @@ Built with:
 * FastAPI (microservices architecture)
 * Redis Streams (local messaging)
 * AWS SQS (cloud phase)
-* PostgreSQL
+* PostgreSQL (Database)
 * scikit-learn (anomaly detection)
 * LangChain + LangGraph (AI reasoning)
 * Docker (local orchestration)
