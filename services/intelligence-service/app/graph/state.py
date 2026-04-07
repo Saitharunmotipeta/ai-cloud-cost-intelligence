@@ -21,6 +21,7 @@ class IntelligenceState(TypedDict):
 
     # 🆕 classification
     anomaly_type: str
+    context: list[dict]
 
     # 🆕 structured output
     explanation: str
