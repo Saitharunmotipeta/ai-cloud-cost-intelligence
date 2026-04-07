@@ -25,36 +25,60 @@ class LLMExplainer:
         ratio,
         historical_trend,
         repeat_anomaly,
+        context=None,   # 🔥 NEW
     ):
 
+        # 🔥 Build context text safely
+        def build_context_text(context):
+            if not context:
+                return "No similar past anomalies found."
+
+            lines = []
+            for c in context[:3]:  # safety limit
+                line = (
+                    f"Service: {c.get('service')}, "
+                    f"Type: {c.get('anomaly_type')}, "
+                    f"Root Cause: {c.get('root_cause')}, "
+                    f"Explanation: {c.get('explanation')}"
+                )
+                lines.append(line)
+
+            return "\n".join(lines)
+
+        context_text = build_context_text(context)
+
         prompt = f"""
-You are a cloud cost optimization expert.
+    You are a cloud cost optimization expert.
 
-Analyze the anomaly:
+    Analyze the anomaly:
 
-Service: {service}
-Actual Cost: {cost}
-Expected Cost: {expected_cost}
-Deviation: {deviation}
-Anomaly Type: {anomaly_type}
-Trend: {trend}
-Change Ratio: {ratio}
-Historical Trend: {historical_trend}
-Repeated Anomaly: {repeat_anomaly}
+    Service: {service}
+    Actual Cost: {cost}
+    Expected Cost: {expected_cost}
+    Deviation: {deviation}
+    Anomaly Type: {anomaly_type}
+    Trend: {trend}
+    Change Ratio: {ratio}
+    Historical Trend: {historical_trend}
+    Repeated Anomaly: {repeat_anomaly}
 
-Return STRICT JSON (no extra text):
+    Similar past anomalies:
+    {context_text}
 
-{{
-  "explanation": "...",
-  "root_cause": "...",
-  "confidence": "low | medium | high"
-}}
+    Return STRICT JSON (no extra text):
 
-Rules:
-- Use historical context if relevant
-- Keep it concise
-- No extra text
-"""
+    {{
+    "explanation": "...",
+    "root_cause": "...",
+    "confidence": "low | medium | high"
+    }}
+
+    Rules:
+    - Compare with similar past anomalies if relevant
+    - Identify patterns, not just describe numbers
+    - Be concise and actionable
+    - No extra text
+    """
 
         try:
             completion = self.client.chat.completions.create(

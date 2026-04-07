@@ -21,6 +21,7 @@ def llm_node(state):
                 ratio=state["ratio"],
                 historical_trend=state["historical_trend"],
                 repeat_anomaly=state["repeat_anomaly"],
+                context=state.get("context", [])   # 🔥 NEW
             )
 
             return {
