@@ -2,6 +2,26 @@ import os
 import json
 from groq import Groq
 
+import re
+
+def safe_parse_json(text):
+    import json
+    try:
+        return json.loads(text)
+    except:
+        match = re.search(r"\{.*\}", text, re.DOTALL)
+        if match:
+            try:
+                return json.loads(match.group())
+            except:
+                pass
+
+        return {
+            "explanation": "AI response parsing failed",
+            "root_cause": "Unstructured output from model",
+            "confidence": "low"
+        }
+
 
 class LLMExplainer:
 
@@ -65,7 +85,14 @@ class LLMExplainer:
     Similar past anomalies:
     {context_text}
 
-    Return STRICT JSON (no extra text):
+    You MUST return ONLY valid JSON.
+    Do NOT include any explanation outside JSON.
+    Do NOT include markdown.
+    Do NOT include text before or after JSON.
+
+    If you fail to follow this, the system will break.
+
+    Return JSON in this format:
 
     {{
     "explanation": "...",
@@ -92,7 +119,7 @@ class LLMExplainer:
 
             # 🔥 SAFE PARSE
             try:
-                data = json.loads(text)
+                data = safe_parse_json(text)
             except Exception:
                 data = {
                     "explanation": "AI response parsing failed",

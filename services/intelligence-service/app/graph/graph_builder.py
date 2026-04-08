@@ -15,7 +15,7 @@ def build_graph():
     builder = StateGraph(IntelligenceState)
 
     # ✅ nodes
-    builder.add_node("context", context_node)
+    builder.add_node("context_node", context_node)
     builder.add_node("rule", rule_node)
     builder.add_node("severity_node", severity_node)
     builder.add_node("llm_node", llm_node)
@@ -23,11 +23,11 @@ def build_graph():
     builder.add_node("historical", historical_node)
 
     # ✅ NEW entry point
-    builder.set_entry_point("context")
+    builder.set_entry_point("context_node")
 
 
     # ✅ flow
-    builder.add_edge("context", "historical")
+    builder.add_edge("context_node", "historical")
     builder.add_edge("historical", "classification")
     builder.add_edge("classification", "rule")
     builder.add_edge("rule", "severity_node")

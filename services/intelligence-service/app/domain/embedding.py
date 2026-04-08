@@ -1,8 +1,6 @@
-from sentence_transformers import SentenceTransformer
+from fastembed import TextEmbedding
 
-# Load once (global singleton)
-_model = SentenceTransformer("all-MiniLM-L6-v2")
+_model = TextEmbedding()
 
-
-def get_embedding(text: str) -> list:
-    return _model.encode(text).tolist()
+def get_embedding(text: str):
+    return list(_model.embed([text]))[0].tolist()

@@ -1,8 +1,8 @@
 def format_anomaly(anomaly: dict) -> str:
     return f"""
     Service: {anomaly.get("service")}
+    ServiceType: {anomaly.get("service")}   # 🔥 boost importance
     Type: {anomaly.get("anomaly_type")}
-    Region: {anomaly.get("region")}
     Severity: {anomaly.get("severity")}
     Description: {anomaly.get("description")}
     """

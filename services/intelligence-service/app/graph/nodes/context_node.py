@@ -32,7 +32,16 @@ def context_node(state):
 
     query_embedding = get_embedding(query_text)
 
-    results = vector_store.search(query_embedding, top_k=3)
+    results = vector_store.search(query_embedding, top_k=5)
+
+    # 🔥 filter by same service
+    filtered = [
+        r for r in results
+        if r.get("service") == event["service"]
+    ]
+
+    # fallback if nothing matches
+    state["context"] = filtered if filtered else []
 
     return {
         # existing

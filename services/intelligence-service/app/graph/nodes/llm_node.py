@@ -24,6 +24,13 @@ def llm_node(state):
                 context=state.get("context", [])   # 🔥 NEW
             )
 
+            if llm is None or result is None:
+                return {
+                    "explanation": "Moderate anomaly detected; no deep analysis triggered.",
+                    "root_cause": "Likely minor fluctuation",
+                    "confidence": "low"
+                }
+
             return {
                 "explanation": result["explanation"],
                 "root_cause": result["root_cause"],
