@@ -10,7 +10,7 @@ def context_node(state):
     cost = event["cost"]
     expected = event["expected_cost"]
 
-    # 🔥 existing logic (KEEP THIS)
+    # 🔥 existing logic
     ratio = (cost - expected) / expected if expected else 0
     spike = ratio > 1
 
@@ -21,7 +21,7 @@ def context_node(state):
     else:
         trend = "stable"
 
-    # 🔥 NEW: RAG retrieval
+    # 🔥 RAG query
     query_text = format_anomaly({
         "service": event["service"],
         "anomaly_type": state.get("anomaly_type", "unknown"),
@@ -34,17 +34,21 @@ def context_node(state):
 
     results = vector_store.search(query_embedding, top_k=5)
 
-    # 🔥 filter by same service
+    # 🔥 STRICT FILTER (core fix)
     filtered = [
         r for r in results
         if r.get("service") == event["service"]
     ]
 
-    # fallback if nothing matches
-    state["context"] = filtered if filtered else []
+    # 🔥 DEBUG (temporary — remove later)
+    print("\n🔍 DEBUG → Event Service:", event["service"])
+    print("🔍 DEBUG → Retrieved Services:", [r.get("service") for r in results])
+    print("🔍 DEBUG → Filtered Services:", [r.get("service") for r in filtered])
+
+    # 🚨 CRITICAL: NO FALLBACK TO WRONG DATA
+    final_context = filtered
 
     return {
-        # existing
         "service": event["service"],
         "cost": cost,
         "expected_cost": expected,
@@ -54,6 +58,5 @@ def context_node(state):
         "spike": spike,
         "trend": trend,
 
-        # 🔥 NEW
-        "context": results
+        "context": final_context
     }

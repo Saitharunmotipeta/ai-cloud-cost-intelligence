@@ -70,9 +70,9 @@ def run_test():
             "event": {
                 "account_id": "test-2",
                 "service": "EC2",
-                "cost": 150,
+                "cost": 500,
                 "expected_cost": 100,
-                "deviation": 50,
+                "deviation": 400,
             }
         },
         {
@@ -80,9 +80,9 @@ def run_test():
             "event": {
                 "account_id": "test-3",
                 "service": "S3",
-                "cost": 300,
+                "cost": 600,
                 "expected_cost": 100,
-                "deviation": 200,
+                "deviation": 500,
             }
         }
     ]
