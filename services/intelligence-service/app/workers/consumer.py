@@ -6,7 +6,6 @@ from shared.events.base_event import BaseEvent
 from shared.events.cost_anomaly_detected_v1 import CostAnomalyDetectedEvent
 from shared.events.cost_insight_generated_v1 import (
     CostInsightGeneratedEvent,
-    CostInsightGeneratedPayload,
 )
 
 from shared.broker.interface import BrokerInterface
@@ -16,7 +15,6 @@ from shared.constants.streams import (
     COST_INSIGHT_GENERATED_STREAM
 )
 
-from app.domain.insight_engine import InsightEngine
 from app.graph.graph_builder import build_graph
 
 
@@ -34,15 +32,12 @@ class IntelligenceConsumer:
 
         self.broker = broker
         self.consumer_name = consumer_name
-
-        # idempotency protection
         self.processed_events: Set[str] = set()
 
         self.graph = build_graph()
 
     async def start(self):
 
-        # ensure consumer group exists
         await self.broker.create_consumer_group(STREAM_NAME, GROUP_NAME)
 
         logger.info(
@@ -68,36 +63,22 @@ class IntelligenceConsumer:
                     await self.handle_message(message_id, base_event)
 
             except Exception:
+                logger.exception("Failed while consuming events")
 
-                logger.exception(
-                    "Failed while consuming events",
-                    extra={
-                        "consumer": self.consumer_name,
-                        "stream": STREAM_NAME,
-                        "group": GROUP_NAME,
-                    },
-                )
-
-            # prevent hot retry loop
             await asyncio.sleep(1)
 
     async def handle_message(self, message_id: str, base_event: BaseEvent):
 
-        # idempotency check
         if base_event.event_id in self.processed_events:
             await self.broker.acknowledge(STREAM_NAME, GROUP_NAME, message_id)
             return
 
         try:
 
-            # reconstruct anomaly event
             event = CostAnomalyDetectedEvent.model_validate(base_event.model_dump())
-
             payload = event.payload
 
-            if payload.service == "DLQ_TEST":
-                raise Exception("Forced failure for DLQ testing")
-
+            # 🔥 Invoke LangGraph (with full context)
             result = await self.graph.ainvoke({
                 "event": {
                     "account_id": payload.account_id,
@@ -105,29 +86,27 @@ class IntelligenceConsumer:
                     "cost": payload.cost,
                     "expected_cost": payload.expected_cost,
                     "deviation": payload.deviation,
-                }
+                },
+                "anomaly_type": getattr(payload, "anomaly_type", "unknown"),
             })
 
-            insight = {
-                "severity": result["severity"],
-                "message": result.get(
-                    "message",
-                    "No detailed explanation generated for low severity anomaly."
-                ),
-                "recommendation": result["recommendation"],
-            }
+            # 🔥 Use AI outputs properly
+            explanation = result.get("explanation", "No explanation generated")
+            root_cause = result.get("root_cause", "Unknown")
+            confidence = result.get("confidence", "low")
+            severity = result.get("severity", "low")
 
+            # 🔥 Build insight event
             insight_event = CostInsightGeneratedEvent.create(
                 source="intelligence-service",
                 correlation_id=event.correlation_id,
                 account_id=payload.account_id,
                 service=payload.service,
-                severity=insight["severity"],
-                message=insight["message"],
-                recommendation=insight["recommendation"],
+                severity=severity,
+                message=explanation,   # 🔥 AI explanation
+                recommendation=root_cause,  # 🔥 mapped for now
             )
 
-            # publish insight event
             await self.broker.publish(OUTPUT_STREAM, insight_event)
 
             logger.info(
@@ -135,54 +114,32 @@ class IntelligenceConsumer:
                 extra={
                     "event_id": insight_event.event_id,
                     "correlation_id": insight_event.correlation_id,
-                    "stream": OUTPUT_STREAM,
+                    "account_id": payload.account_id,
+                    "service": payload.service,
+                    "confidence": confidence,
                 },
             )
 
-            # mark processed
             self.processed_events.add(base_event.event_id)
 
-            # acknowledge original message
             await self.broker.acknowledge(STREAM_NAME, GROUP_NAME, message_id)
 
         except Exception as e:
 
-            logger.exception(
-                f"Insight generation failed: {str(e)}",
-                extra={
-                    "event_id": base_event.event_id,
-                    "correlation_id": base_event.correlation_id,
-                },
-            )
+            logger.exception(f"Insight generation failed: {str(e)}")
 
-        base_event.increment_retry()
+            base_event.increment_retry()
 
-        if base_event.retry_count >= 3:
+            if base_event.retry_count >= 3:
 
-            logger.error(
-                "Event moved to DLQ",
-                extra={
-                    "event_id": base_event.event_id,
-                    "correlation_id": base_event.correlation_id,
-                    "stream": DLQ_STREAM,
-                },
-            )
+                logger.error("Event moved to DLQ")
 
-            await self.broker.publish(DLQ_STREAM, base_event)
+                await self.broker.publish(DLQ_STREAM, base_event)
 
-            await self.broker.acknowledge(
-                STREAM_NAME,
-                GROUP_NAME,
-                message_id,
-            )
+                await self.broker.acknowledge(STREAM_NAME, GROUP_NAME, message_id)
+                return
 
-            return
+            # retry
+            await self.broker.publish(STREAM_NAME, base_event)
 
-        # retry only if retry_count < 3
-        await self.broker.publish(STREAM_NAME, base_event)
-
-        await self.broker.acknowledge(
-            STREAM_NAME,
-            GROUP_NAME,
-            message_id,
-        )
+            await self.broker.acknowledge(STREAM_NAME, GROUP_NAME, message_id)

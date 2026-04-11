@@ -25,7 +25,7 @@ from app.domain.anomaly_detector import AnomalyDetector
 
 
 STREAM_NAME = COST_DATA_INGESTED_STREAM
-OUTPUT_STREAM = COST_DATA_READY_FOR_ANALYSIS_STREAM 
+OUTPUT_STREAM = COST_DATA_READY_FOR_ANALYSIS_STREAM
 ANOMALY_STREAM = COST_ANOMALY_DETECTED_STREAM
 DLQ_STREAM = DEAD_LETTER_STREAM
 GROUP_NAME = "analytics-group-v1"
@@ -65,14 +65,17 @@ class AnalyticsConsumer:
 
     async def handle_message(self, message_id: str, base_event: BaseEvent):
 
+        # Idempotency check
         if base_event.event_id in self.processed_events:
             await self.broker.acknowledge(STREAM_NAME, GROUP_NAME, message_id)
             return
 
         try:
 
+            # 🔹 Parse incoming event
             event = CostDataIngestedEvent.model_validate(base_event.model_dump())
 
+            # 🔹 Emit "ready for analysis" event
             ready_payload = CostDataReadyForAnalysisPayload(
                 account_id=event.payload.account_id,
                 service=event.payload.service,
@@ -89,7 +92,7 @@ class AnalyticsConsumer:
 
             await self.broker.publish(OUTPUT_STREAM, ready_event)
 
-            # ---------- Anomaly Detection ----------
+            # ---------- 🔥 Anomaly Detection ----------
 
             result = self.detector.check_anomaly(
                 event.payload.account_id,
@@ -100,13 +103,15 @@ class AnalyticsConsumer:
             if result:
 
                 anomaly_payload = CostAnomalyDetectedPayload(
-                account_id=event.payload.account_id,
-                service=event.payload.service,
-                cost=event.payload.cost,
-                expected_cost=result["expected_cost"],
-                deviation=result["deviation"],
-                detected_at=datetime.now(timezone.utc),
-            )
+                    account_id=event.payload.account_id,
+                    service=event.payload.service,
+                    cost=event.payload.cost,
+                    expected_cost=result["expected_cost"],
+                    deviation=result["deviation"],
+                    anomaly_type=result["anomaly_type"],   # 🔥 NEW
+                    confidence=result["confidence"],       # 🔥 NEW
+                    detected_at=datetime.now(timezone.utc),
+                )
 
                 anomaly_event = CostAnomalyDetectedEvent(
                     source="analytics-service",
@@ -121,16 +126,22 @@ class AnalyticsConsumer:
                     extra={
                         "event_id": anomaly_event.event_id,
                         "correlation_id": anomaly_event.correlation_id,
+                        "account_id": event.payload.account_id,
+                        "service": event.payload.service,
+                        "anomaly_type": result["anomaly_type"],
+                        "confidence": result["confidence"],
                     },
                 )
 
-            # ---------- Success ----------
+            # ---------- ✅ Success ----------
 
             logger.info(
                 "Processed cost_data_ingested_v1",
                 extra={
                     "event_id": base_event.event_id,
                     "correlation_id": base_event.correlation_id,
+                    "account_id": event.payload.account_id,
+                    "service": event.payload.service,
                 },
             )
 
