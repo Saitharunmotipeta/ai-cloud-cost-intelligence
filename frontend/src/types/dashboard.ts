@@ -1,10 +1,14 @@
 export type Insight = {
-  insight_id: string;
+  id: string;
   service: string;
   severity: string;
-  message: string;
-  recommendation: string;
-  generated_at: string;
+  anomalyType: string;
+  impact: string;
+  explanation: string;
+  rootCause: string;
+  action: string;
+  confidence: string;
+  generatedAt: string;
 };
 
 export type Severity = {
@@ -18,7 +22,7 @@ export type DailyInsight = {
 };
 
 export type DashboardResponse = {
-  recentInsights: Insight[];
+  insights: Insight[];
   severityBreakdown: Severity[];
   dailyInsights: DailyInsight[];
 };

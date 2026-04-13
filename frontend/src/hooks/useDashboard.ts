@@ -1,7 +1,7 @@
 import { useQuery } from "@apollo/client/react";
 
 import {
-  GET_RECENT_INSIGHTS,
+  GET_INSIGHTS,
   GET_SEVERITY_BREAKDOWN,
   GET_DAILY_INSIGHTS,
 } from "../api/graphql/queries";
@@ -12,10 +12,8 @@ import {
   DailyInsight,
 } from "../types/dashboard";
 
-
-// ✅ GraphQL Response Types
 type InsightsResponse = {
-  recentInsights: Insight[];
+  insights: Insight[];
 };
 
 type SeverityResponse = {
@@ -26,71 +24,71 @@ type DailyResponse = {
   dailyInsights: DailyInsight[];
 };
 
+type UseDashboardParams = {
+  accountId: string;
+  service?: string | null;
+  severity?: string | null;
+};
 
-export const useDashboard = (timeRange: string = "7d") => {
+export const useDashboard = ({
+  accountId,
+  service = null,
+  severity = null,
+}: UseDashboardParams) => {
 
   const commonOptions = {
     errorPolicy: "all" as const,
-
-    // 🔥 optimized polling (not too aggressive)
-    pollInterval: 30000,
-
-    // 🔥 caching strategy
-    fetchPolicy: "cache-and-network" as const,
-    nextFetchPolicy: "cache-first" as const,
+    fetchPolicy: "network-only" as const,
+    pollInterval: 60000, // 🔥 1 min (or increase later)
   };
 
-
-  // 🔹 Insights Query
+  // 🔥 Insights (FILTERED FROM BACKEND)
   const insightsQuery = useQuery<InsightsResponse>(
-    GET_RECENT_INSIGHTS,
+    GET_INSIGHTS,
     {
       ...commonOptions,
-      variables: { limit: 10, timeRange },
+      variables: {
+        accountId,
+        service,
+        severity,
+        limit: 10,
+        offset: 0,
+      },
     }
   );
 
-
-  // 🔹 Severity Breakdown Query
+  // 🔥 Severity Breakdown (MUST pass accountId)
   const severityQuery = useQuery<SeverityResponse>(
     GET_SEVERITY_BREAKDOWN,
     {
       ...commonOptions,
-      variables: { timeRange },
+      variables: { accountId },
     }
   );
 
-
-  // 🔹 Daily Insights Query
+  // 🔥 Daily Insights (MUST pass accountId)
   const dailyQuery = useQuery<DailyResponse>(
     GET_DAILY_INSIGHTS,
     {
       ...commonOptions,
-      variables: { timeRange },
+      variables: { accountId },
     }
   );
 
-
-  // ✅ Safe Data Extraction
-  const insights = insightsQuery.data?.recentInsights ?? [];
-  const severity = severityQuery.data?.severityBreakdown ?? [];
+  const insights = insightsQuery.data?.insights ?? [];
+  const severityData = severityQuery.data?.severityBreakdown ?? [];
   const daily = dailyQuery.data?.dailyInsights ?? [];
 
-
-  // ✅ Combined Loading State
   const loading =
     insightsQuery.loading ||
     severityQuery.loading ||
     dailyQuery.loading;
 
-
-  // ✅ Combined Error Handling
   const errors = [
     insightsQuery.error,
     severityQuery.error,
     dailyQuery.error,
   ].filter(Boolean);
-
 
   const error = errors.length
     ? {
@@ -99,17 +97,14 @@ export const useDashboard = (timeRange: string = "7d") => {
       }
     : null;
 
-
   return {
     insights,
-    severity,
+    severity: severityData,
     daily,
     loading,
     error,
-
-    // 🔥 Partial failure detection
     isPartial:
-      (!insights.length || !severity.length || !daily.length) &&
+      (!insights.length || !severityData.length || !daily.length) &&
       !loading,
   };
 };

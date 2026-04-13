@@ -10,6 +10,15 @@ import FilterBar from "../components/FilterBar";
 
 function Dashboard() {
 
+  const accountId = localStorage.getItem("account_id");
+
+  const [filters, setFilters] = useState({
+    severity: "ALL",
+    service: "",
+    date: ""
+  });
+
+  // 🔥 BACKEND FILTERING (IMPORTANT)
   const {
     insights,
     severity,
@@ -17,15 +26,13 @@ function Dashboard() {
     loading,
     error,
     isPartial
-  } = useDashboard()
-
-  // ✅ Add filters (same pattern as Insights page)
-  const [filters, setFilters] = useState({
-    severity: "ALL",
-    service: "",
-    date: ""
+  } = useDashboard({
+    accountId,
+    service: filters.service || null,
+    severity: filters.severity === "ALL" ? null : filters.severity,
   });
 
+  // ✅ services list (safe)
   const services = [
     ...new Set(
       insights
@@ -34,30 +41,7 @@ function Dashboard() {
     )
   ];
 
-  // 🔥 Filtered insights (shared logic)
-  const filteredInsights = insights.filter((i) => {
-
-    // ✅ apply only if user selected something meaningful
-    const matchSeverity =
-      !filters.severity || filters.severity === "ALL"
-        ? true
-        : i?.severity === filters.severity;
-
-    const matchService =
-      !filters.service
-        ? true
-        : i?.service === filters.service;
-
-    const matchDate =
-      !filters.date
-        ? true
-        : i?.generatedAt?.startsWith(filters.date) ||
-          i?.generated_at?.startsWith(filters.date);
-
-    return matchSeverity && matchService && matchDate;
-  });
-
-  // 🔥 Stats (memoized)
+  // 🔥 Stats (correct now)
   const totalInsights = useMemo(
     () => severity.reduce((sum, s) => sum + (s?.count || 0), 0),
     [severity]
@@ -93,7 +77,7 @@ function Dashboard() {
       <div className="stats-grid">
         <StatCard title="Total Insights" value={totalInsights} loading={loading} />
         <StatCard title="Critical Issues" value={criticalCount} color="red" loading={loading} />
-        <StatCard title="Filtered Results" value={filteredInsights.length} loading={loading} />
+        <StatCard title="Filtered Results" value={insights.length} loading={loading} />
       </div>
 
       {/* 🔥 CHARTS */}
@@ -123,9 +107,9 @@ function Dashboard() {
 
       </div>
 
-      {/* 🔥 TABLE (LIMITED FOR UX) */}
+      {/* 🔥 TABLE */}
       <InsightTable
-        insights={filteredInsights.slice(0, 10)}
+        insights={insights.slice(0, 10)}
         loading={loading}
         error={error}
       />
