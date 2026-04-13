@@ -1,16 +1,35 @@
 import { useQuery } from "@apollo/client/react";
-import { GET_RECENT_INSIGHTS } from "../api/graphql/queries";
+import { GET_INSIGHTS } from "../api/graphql/queries";
 import { InsightsResponse } from "../types/insight";
 
-export const useInsights = (limit = 50, timeRange: string = "7d") => {
-  const query = useQuery<InsightsResponse>(GET_RECENT_INSIGHTS, {
-    variables: { limit, timeRange }, // 🔥 future ready
+type UseInsightsParams = {
+  accountId: string;
+  service?: string | null;
+  severity?: string | null;
+  limit?: number;
+};
+
+export const useInsights = ({
+  accountId,
+  service = null,
+  severity = null,
+  limit = 50,
+}: UseInsightsParams) => {
+
+  const query = useQuery<InsightsResponse>(GET_INSIGHTS, {
+    variables: {
+      accountId,
+      service,
+      severity,
+      limit,
+      offset: 0,
+    },
     errorPolicy: "all",
-    fetchPolicy: "cache-and-network",
-    pollInterval: 360000, // 🔥 live updates
+    fetchPolicy: "network-only",
+    pollInterval: 60000,
   });
 
-  const insights = query.data?.recentInsights ?? [];
+  const insights = query.data?.insights ?? [];
 
   const error = query.error
     ? {

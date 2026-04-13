@@ -6,28 +6,35 @@ import FilterBar from "../components/FilterBar";
 
 function Insights() {
 
-  const {
-    insights = [],
-    loading,
-    error,
-    isEmpty
-  } = useInsights(50)
+  const accountId = localStorage.getItem("account_id");
 
-  // ✅ Filters
+  // ✅ Filters (state only, no heavy filtering here)
   const [filters, setFilters] = useState({
     severity: "ALL",
     service: "",
     date: ""
   });
 
-  // 🔥 NEW: track new insights
+  // 🔥 PASS filters + accountId to hook
+  const {
+    insights = [],
+    loading,
+    error,
+    isEmpty
+  } = useInsights({
+    accountId,
+    service: filters.service || null,
+    severity: filters.severity === "ALL" ? null : filters.severity,
+    limit: 50
+  });
+
+  // 🔥 Track new insights (unchanged logic)
   const [prevInsights, setPrevInsights] = useState([]);
   const [newIds, setNewIds] = useState(new Set());
 
   useEffect(() => {
     if (!insights.length) return;
 
-    // ✅ FIRST LOAD → don't mark anything as new
     if (prevInsights.length === 0) {
       setPrevInsights(insights);
       return;
@@ -43,36 +50,14 @@ function Insights() {
 
   }, [insights]);
 
-  // ✅ FIXED services extraction
+  // ✅ Services extraction (safe)
   const services = [
-    ...new Set(
-      insights.map(i => i?.service).filter(Boolean)
-    )
+    ...new Set(insights.map(i => i?.service).filter(Boolean))
   ];
 
-  // 🔥 Filtering
-  const filteredInsights = insights.filter((i) => {
+  // ❌ REMOVE frontend filtering → backend already filtered
 
-    const matchSeverity =
-      !filters.severity || filters.severity === "ALL"
-        ? true
-        : i?.severity === filters.severity;
-
-    const matchService =
-      !filters.service
-        ? true
-        : i?.service === filters.service;
-
-    const matchDate =
-      !filters.date
-        ? true
-        : i?.generatedAt?.startsWith(filters.date) ||
-          i?.generated_at?.startsWith(filters.date);
-
-    return matchSeverity && matchService && matchDate;
-  });
-
-  // 🔥 Severity priority sorting
+  // 🔥 Sorting only (allowed)
   const priority = {
     CRITICAL: 1,
     HIGH: 2,
@@ -80,7 +65,7 @@ function Insights() {
     LOW: 4
   };
 
-  const sortedInsights = [...filteredInsights].sort(
+  const sortedInsights = [...insights].sort(
     (a, b) => (priority[a.severity] || 5) - (priority[b.severity] || 5)
   );
 
@@ -107,7 +92,7 @@ function Insights() {
           insights={sortedInsights}
           loading={loading}
           error={error}
-          newIds={newIds} 
+          newIds={newIds}
         />
       )}
     </div>

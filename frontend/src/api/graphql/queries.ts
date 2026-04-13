@@ -2,8 +2,8 @@ import { gql } from "@apollo/client";
 
 // 🔥 UPDATED INSIGHTS (FULL STRUCTURED)
 export const GET_INSIGHTS = gql`
-  query GetInsights {
-    insights(accountId: "11111111-1111-1111-1111-111111111111") {
+  query GetInsights($accountId: String!, $service: String, $severity: String) {
+    insights(accountId: $accountId, service: $service, severity: $severity) {
       id
       service
       anomalyType

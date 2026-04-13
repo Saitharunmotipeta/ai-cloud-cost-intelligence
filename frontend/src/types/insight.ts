@@ -1,13 +1,21 @@
 export type Insight = {
-  insight_id: string;
-  account_id: string;
+  id: string;
+
+  accountId: string;
   service: string;
+
+  anomalyType: string;
   severity: string;
-  message: string;
-  recommendation: string;
-  generated_at: string;
+  impact: string;
+
+  explanation: string;
+  rootCause: string;
+  action: string;
+  confidence: string;
+
+  generatedAt: string;
 };
 
 export type InsightsResponse = {
-  recentInsights: Insight[]; // ✅ MUST match GraphQL response
+  insights: Insight[]; // 🔥 MUST match GraphQL query
 };

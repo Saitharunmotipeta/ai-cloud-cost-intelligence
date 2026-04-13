@@ -1,23 +1,22 @@
 from contextlib import contextmanager
 from uuid import UUID
-
+from sqlalchemy.orm import Session
 from sqlalchemy import func, cast, Date
+import time
 
 from app.core.database import SessionLocal
 from app.models.insight import Insight
 
-import time
 
-_cache = {
-    "data": None,
-    "timestamp": 0
-}
-
-CACHE_TTL = 10  # seconds
+# -------------------------------
+# CACHE (PER ACCOUNT)
+# -------------------------------
+_cache = {}
+CACHE_TTL = 3600  # 🔥 1 hour
 
 
 # -------------------------------
-# DB SESSION MANAGER (CRITICAL)
+# DB SESSION MANAGER
 # -------------------------------
 @contextmanager
 def get_db():
@@ -39,57 +38,63 @@ def parse_uuid(value: str) -> UUID:
 
 
 # -------------------------------
-# BASIC QUERIES
+# CORE QUERY (SINGLE SOURCE OF TRUTH)
 # -------------------------------
-def get_insights_by_account(account_id: str):
+def get_filtered_insights(
+    account_id: str,
+    service: str = None,
+    severity: str = None,
+    limit: int = 100,
+    offset: int = 0
+):
+
     account_id = parse_uuid(account_id)
 
+    now = time.time()
+    cache_key = f"{account_id}_{service}_{severity}_{limit}_{offset}"
+
+    # ✅ CACHE HIT
+    if (
+        cache_key in _cache
+        and now - _cache[cache_key]["timestamp"] < CACHE_TTL
+    ):
+        return _cache[cache_key]["data"]
+
     with get_db() as db:
-        return (
-            db.query(Insight)
-            .filter(Insight.account_id == account_id)
-            .all()
+
+        query = db.query(Insight).filter(
+            Insight.account_id == account_id
         )
 
+        # 🔥 FILTERS
+        if service:
+            query = query.filter(Insight.service == service)
 
-def get_recent_insights(limit: int):
-    with get_db() as db:
-        return (
-            db.query(Insight)
-            .order_by(Insight.generated_at.desc())
-            .limit(limit)
-            .all()
-        )
+        if severity:
+            query = query.filter(Insight.severity == severity)
 
-
-def get_insights_paginated(account_id: str, limit: int, offset: int):
-    account_id = parse_uuid(account_id)
-
-    with get_db() as db:
-        return (
-            db.query(Insight)
-            .filter(Insight.account_id == account_id)
+        results = (
+            query
             .order_by(Insight.generated_at.desc())
             .limit(limit)
             .offset(offset)
             .all()
         )
 
+    # ✅ STORE CACHE
+    _cache[cache_key] = {
+        "data": results,
+        "timestamp": now
+    }
 
-def get_insights_by_severity(severity: str):
-    with get_db() as db:
-        return (
-            db.query(Insight)
-            .filter(Insight.severity == severity)
-            .order_by(Insight.generated_at.desc())
-            .all()
-        )
+    return results
 
 
 # -------------------------------
-# AGGREGATIONS
+# SUMMARY / ANALYTICS
 # -------------------------------
 def get_service_summary(account_id: str):
+
     account_id = parse_uuid(account_id)
 
     with get_db() as db:
@@ -107,13 +112,17 @@ def get_service_summary(account_id: str):
     return [{"service": r[0], "count": r[1]} for r in results]
 
 
-def get_severity_breakdown():
+def get_severity_breakdown(account_id: str):
+
+    account_id = parse_uuid(account_id)
+
     with get_db() as db:
         results = (
             db.query(
                 Insight.severity,
                 func.count(Insight.id).label("count"),
             )
+            .filter(Insight.account_id == account_id)
             .group_by(Insight.severity)
             .all()
         )
@@ -121,46 +130,20 @@ def get_severity_breakdown():
     return [{"severity": r[0], "count": r[1]} for r in results]
 
 
-def get_daily_insights():
+def get_daily_insights(account_id: str):
+
+    account_id = parse_uuid(account_id)
+
     with get_db() as db:
         results = (
             db.query(
                 cast(Insight.generated_at, Date).label("date"),
                 func.count(Insight.id).label("count"),
             )
+            .filter(Insight.account_id == account_id)
             .group_by("date")
             .order_by("date")
             .all()
         )
 
     return [{"date": r[0], "count": r[1]} for r in results]
-
-def get_insights_from_db(limit: int = 100):
-    with get_db() as db:
-        return (
-            db.query(Insight)
-            .order_by(Insight.generated_at.desc())
-            .limit(limit)
-            .all()
-        )
-        
-def get_all_insights():
-
-    now = time.time()
-
-    # ✅ return cached
-    if _cache["data"] and now - _cache["timestamp"] < CACHE_TTL:
-        return _cache["data"]
-
-    db = SessionLocal()
-    insights = db.query(Insight).all()
-
-    result = insights
-
-    db.close()
-
-    # ✅ store cache
-    _cache["data"] = result
-    _cache["timestamp"] = now
-
-    return result
