@@ -43,6 +43,7 @@ class DailyInsightType:
 class AnomalyType:
     service: str
     expected_cost: float
+    severity: str
     actual_cost: float
     deviation: float
     timestamp: str

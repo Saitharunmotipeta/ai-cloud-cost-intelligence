@@ -6,6 +6,15 @@ import Insights from "./pages/Insights";
 import Anomalies from "./pages/Anomalies";
 
 function App() {
+
+  // 🔥 TEMP HARDCODE (SAFE + CLEAN)
+  const ACCOUNT_ID = "11111111-1111-1111-1111-111111111111";
+
+  // set only once
+  if (!localStorage.getItem("account_id")) {
+    localStorage.setItem("account_id", ACCOUNT_ID);
+  }
+
   return (
     <Router>
       <MainLayout>

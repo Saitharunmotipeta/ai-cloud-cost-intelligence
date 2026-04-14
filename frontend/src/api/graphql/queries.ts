@@ -1,9 +1,22 @@
 import { gql } from "@apollo/client";
 
-// 🔥 UPDATED INSIGHTS (FULL STRUCTURED)
+
+// 🔥 MAIN INSIGHTS (FILTERABLE)
 export const GET_INSIGHTS = gql`
-  query GetInsights($accountId: String!, $service: String, $severity: String) {
-    insights(accountId: $accountId, service: $service, severity: $severity) {
+  query GetInsights(
+    $accountId: String!
+    $service: String
+    $severity: String
+    $limit: Int
+    $offset: Int
+  ) {
+    insights(
+      accountId: $accountId
+      service: $service
+      severity: $severity
+      limit: $limit
+      offset: $offset
+    ) {
       id
       service
       anomalyType
@@ -18,52 +31,38 @@ export const GET_INSIGHTS = gql`
   }
 `;
 
-// 🔥 UPDATED RECENT INSIGHTS
-export const GET_RECENT_INSIGHTS = gql`
-  query GetRecentInsights($limit: Int!) {
-    recentInsights(limit: $limit) {
-      id
-      service
-      anomalyType
-      severity
-      impact
-      explanation
-      rootCause
-      action
-      confidence
-      generatedAt
-    }
-  }
-`;
 
-// ✅ NO CHANGE NEEDED
+// 🔥 SEVERITY BREAKDOWN (ACCOUNT SAFE)
 export const GET_SEVERITY_BREAKDOWN = gql`
-  query GetSeverityBreakdown {
-    severityBreakdown {
+  query GetSeverityBreakdown($accountId: String!) {
+    severityBreakdown(accountId: $accountId) {
       severity
       count
     }
   }
 `;
 
-// ✅ NO CHANGE NEEDED
+
+// 🔥 DAILY INSIGHTS (ACCOUNT SAFE)
 export const GET_DAILY_INSIGHTS = gql`
-  query GetDailyInsights {
-    dailyInsights {
+  query GetDailyInsights($accountId: String!) {
+    dailyInsights(accountId: $accountId) {
       date
       count
     }
   }
 `;
 
-// 🔥 OPTIONAL UPGRADE (better anomaly view later)
+
+// 🔥 ANOMALIES (ACCOUNT SAFE)
 export const GET_ANOMALIES = gql`
-  query GetAnomalies {
-    anomalies {
+  query GetAnomalies($accountId: String!) {
+    anomalies(accountId: $accountId) {
       service
       expectedCost
       actualCost
       deviation
+      severity
       timestamp
     }
   }

@@ -3,6 +3,7 @@ export type Anomaly = {
   expectedCost: number;
   actualCost: number;
   deviation: number;
+  severity: string;        // 🔥 ADD THIS
   timestamp: string;
 };
 

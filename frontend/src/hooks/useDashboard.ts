@@ -25,7 +25,7 @@ type DailyResponse = {
 };
 
 type UseDashboardParams = {
-  accountId: string;
+  accountId: string | null;
   service?: string | null;
   severity?: string | null;
 };
@@ -36,13 +36,17 @@ export const useDashboard = ({
   severity = null,
 }: UseDashboardParams) => {
 
+  // 🚨 SAFETY: prevent invalid GraphQL call
+  const shouldSkip = !accountId;
+
   const commonOptions = {
     errorPolicy: "all" as const,
     fetchPolicy: "network-only" as const,
-    pollInterval: 60000, // 🔥 1 min (or increase later)
+    pollInterval: 60000, // 🔥 keep 1 min or increase later
+    skip: shouldSkip,    // 🔥 CRITICAL FIX
   };
 
-  // 🔥 Insights (FILTERED FROM BACKEND)
+  // 🔥 Insights (FILTERED)
   const insightsQuery = useQuery<InsightsResponse>(
     GET_INSIGHTS,
     {
@@ -57,7 +61,7 @@ export const useDashboard = ({
     }
   );
 
-  // 🔥 Severity Breakdown (MUST pass accountId)
+  // 🔥 Severity Breakdown
   const severityQuery = useQuery<SeverityResponse>(
     GET_SEVERITY_BREAKDOWN,
     {
@@ -66,7 +70,7 @@ export const useDashboard = ({
     }
   );
 
-  // 🔥 Daily Insights (MUST pass accountId)
+  // 🔥 Daily Insights
   const dailyQuery = useQuery<DailyResponse>(
     GET_DAILY_INSIGHTS,
     {

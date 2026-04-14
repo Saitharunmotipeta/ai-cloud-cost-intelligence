@@ -3,25 +3,21 @@ import { useAnomalies } from "../hooks/useAnomalies";
 import AnomalyTable from "../components/AnomalyTable";
 
 function Anomalies() {
-  const { anomalies, loading, error } = useAnomalies();
+
+  const accountId = localStorage.getItem("account_id");
+
+  const { anomalies, loading, error } = useAnomalies({
+    accountId
+  });
 
   const [selectedSeverity, setSelectedSeverity] = useState("ALL");
   const [selectedDate, setSelectedDate] = useState("");
 
-  // 🔥 derive severity (same logic as table)
-  const getSeverity = (deviation) => {
-    if (deviation > 100) return "CRITICAL";
-    if (deviation > 50) return "HIGH";
-    if (deviation > 20) return "MEDIUM";
-    return "LOW";
-  };
-
-  // 🔥 filtering logic
+  // 🔥 ONLY light filtering (backend already filtered)
   const filteredAnomalies = anomalies.filter((a) => {
-    const severity = getSeverity(a.deviation);
 
     const matchSeverity =
-      selectedSeverity === "ALL" || severity === selectedSeverity;
+      selectedSeverity === "ALL" || a.severity === selectedSeverity;
 
     const matchDate =
       !selectedDate || a.timestamp?.startsWith(selectedDate);
