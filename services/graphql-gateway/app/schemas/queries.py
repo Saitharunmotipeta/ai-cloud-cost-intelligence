@@ -1,15 +1,11 @@
 import strawberry
-from typing import List
+from typing import List, Optional
 
 from app.services.insight_service import (
-    get_insights_by_account,
-    get_recent_insights,
-    get_insights_paginated,
-    get_insights_by_severity,
+    get_filtered_insights,
     get_service_summary,
     get_severity_breakdown,
     get_daily_insights,
-    get_insights_from_db,
 )
 from app.schemas.types import (
     InsightType,
@@ -20,14 +16,14 @@ from app.schemas.types import (
 )
 
 # -------------------------------
-# CONFIG (production safety)
+# CONFIG
 # -------------------------------
 MAX_LIMIT = 50
 DEFAULT_LIMIT = 10
 
 
 # -------------------------------
-# VALIDATION HELPERS
+# VALIDATION
 # -------------------------------
 def validate_limit(limit: int) -> int:
     if limit <= 0:
@@ -41,18 +37,8 @@ def validate_offset(offset: int) -> int:
     return offset
 
 
-def validate_severity(severity: str) -> str:
-    allowed = {"LOW", "MEDIUM", "HIGH", "CRITICAL"}
-    severity = severity.upper()
-
-    if severity not in allowed:
-        raise ValueError(f"Invalid severity. Allowed: {allowed}")
-
-    return severity
-
-
 # -------------------------------
-# MAPPER (DRY principle)
+# MAPPER
 # -------------------------------
 def map_to_type(i) -> InsightType:
     return InsightType(
@@ -79,35 +65,13 @@ def map_to_type(i) -> InsightType:
 @strawberry.type
 class Query:
 
-    # ---------------------------
-    # BASIC QUERY
-    # ---------------------------
+    # 🔥 MAIN QUERY (FIXED)
     @strawberry.field
-    def insights(self, account_id: str) -> List[InsightType]:
-
-        results = get_insights_by_account(account_id)
-
-        return [map_to_type(i) for i in results]
-
-    # ---------------------------
-    # RECENT (with safety)
-    # ---------------------------
-    @strawberry.field
-    def recent_insights(self, limit: int = DEFAULT_LIMIT) -> List[InsightType]:
-
-        limit = validate_limit(limit)
-
-        insights = get_recent_insights(limit)
-
-        return [map_to_type(i) for i in insights]
-
-    # ---------------------------
-    # PAGINATION
-    # ---------------------------
-    @strawberry.field
-    def insights_paginated(
+    def insights(
         self,
         account_id: str,
+        service: Optional[str] = None,
+        severity: Optional[str] = None,
         limit: int = DEFAULT_LIMIT,
         offset: int = 0,
     ) -> List[InsightType]:
@@ -115,30 +79,18 @@ class Query:
         limit = validate_limit(limit)
         offset = validate_offset(offset)
 
-        insights = get_insights_paginated(account_id, limit, offset)
+        results = get_filtered_insights(
+            account_id=account_id,
+            service=service,
+            severity=severity,
+            limit=limit,
+            offset=offset,
+        )
 
-        return [map_to_type(i) for i in insights]
+        return [map_to_type(i) for i in results]
 
-    # ---------------------------
-    # FILTER BY SEVERITY
-    # ---------------------------
-    @strawberry.field
-    def insights_by_severity(
-        self,
-        severity: str,
-        limit: int = DEFAULT_LIMIT,
-    ) -> List[InsightType]:
 
-        severity = validate_severity(severity)
-        limit = validate_limit(limit)
-
-        insights = get_insights_by_severity(severity)
-
-        return [map_to_type(i) for i in insights[:limit]]
-
-    # ---------------------------
-    # AGGREGATION: SERVICE
-    # ---------------------------
+    # 🔥 SERVICE SUMMARY (ACCOUNT SAFE)
     @strawberry.field
     def service_summary(self, account_id: str) -> List[ServiceSummaryType]:
 
@@ -152,13 +104,12 @@ class Query:
             for r in results
         ]
 
-    # ---------------------------
-    # AGGREGATION: SEVERITY
-    # ---------------------------
-    @strawberry.field
-    def severity_breakdown(self) -> List[SeverityBreakdownType]:
 
-        results = get_severity_breakdown()
+    # 🔥 SEVERITY BREAKDOWN (ACCOUNT SAFE)
+    @strawberry.field
+    def severity_breakdown(self, account_id: str) -> List[SeverityBreakdownType]:
+
+        results = get_severity_breakdown(account_id)
 
         return [
             SeverityBreakdownType(
@@ -168,13 +119,12 @@ class Query:
             for r in results
         ]
 
-    # ---------------------------
-    # AGGREGATION: TIME SERIES
-    # ---------------------------
-    @strawberry.field
-    def daily_insights(self) -> List[DailyInsightType]:
 
-        results = get_daily_insights()
+    # 🔥 DAILY INSIGHTS (ACCOUNT SAFE)
+    @strawberry.field
+    def daily_insights(self, account_id: str) -> List[DailyInsightType]:
+
+        results = get_daily_insights(account_id)
 
         return [
             DailyInsightType(
@@ -183,12 +133,16 @@ class Query:
             )
             for r in results
         ]
-    
-    @strawberry.field
-    def anomalies(self) -> list[AnomalyType]:
-        # TEMP: derive from insights table (until real pipeline)
 
-        insights = get_insights_from_db()  # use your existing repo
+
+    # 🔥 ANOMALIES (ACCOUNT SAFE + REAL DATA)
+    @strawberry.field
+    def anomalies(self, account_id: str) -> List[AnomalyType]:
+
+        insights = get_filtered_insights(
+            account_id=account_id,
+            limit=100
+        )
 
         anomalies = []
 
@@ -197,9 +151,10 @@ class Query:
                 anomalies.append(
                     AnomalyType(
                         service=i.service,
-                        expected_cost=100.0,   # placeholder logic
-                        actual_cost=150.0,
-                        deviation=50.0,
+                        expected_cost=0.0,   # placeholder (can improve later)
+                        actual_cost=0.0,
+                        deviation=0.0,
+                        severity=i.severity,   # 🔥 IMPORTANT FIX
                         timestamp=str(i.generated_at),
                     )
                 )
