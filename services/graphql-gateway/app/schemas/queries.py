@@ -135,7 +135,6 @@ class Query:
         ]
 
 
-    # 🔥 ANOMALIES (ACCOUNT SAFE + REAL DATA)
     @strawberry.field
     def anomalies(self, account_id: str) -> List[AnomalyType]:
 
@@ -144,19 +143,14 @@ class Query:
             limit=100
         )
 
-        anomalies = []
-
-        for i in insights:
-            if i.severity in ["CRITICAL", "HIGH"] or i.anomaly_type == "spike":
-                anomalies.append(
-                    AnomalyType(
-                        service=i.service,
-                        expected_cost=0.0,   # placeholder (can improve later)
-                        actual_cost=0.0,
-                        deviation=0.0,
-                        severity=i.severity,   # 🔥 IMPORTANT FIX
-                        timestamp=str(i.generated_at),
-                    )
-                )
-
-        return anomalies
+        return [
+            AnomalyType(
+                id=str(i.id),
+                service=i.service,
+                severity=i.severity,
+                explanation=i.explanation or i.message or "No explanation",
+                timestamp=str(i.generated_at),
+            )
+            for i in insights
+            if i.severity in ["CRITICAL", "HIGH", "MEDIUM"]
+        ]

@@ -41,9 +41,8 @@ class DailyInsightType:
 
 @strawberry.type
 class AnomalyType:
+    id: str
     service: str
-    expected_cost: float
     severity: str
-    actual_cost: float
-    deviation: float
+    explanation: str
     timestamp: str

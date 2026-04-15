@@ -54,15 +54,13 @@ export const GET_DAILY_INSIGHTS = gql`
 `;
 
 
-// 🔥 ANOMALIES (ACCOUNT SAFE)
 export const GET_ANOMALIES = gql`
   query GetAnomalies($accountId: String!) {
     anomalies(accountId: $accountId) {
+      id
       service
-      expectedCost
-      actualCost
-      deviation
       severity
+      explanation
       timestamp
     }
   }

@@ -4,13 +4,7 @@ import { formatDate } from "../utils/formatDate";
 
 function AnomalyTable({ anomalies = [], loading = false, error = null }) {
 
-  const getSeverity = (deviation) => {
-    if (deviation > 100) return "CRITICAL";
-    if (deviation > 50) return "HIGH";
-    if (deviation > 20) return "MEDIUM";
-    return "LOW";
-  };
-
+  // 🔥 USE BACKEND SEVERITY (NOT CALCULATED)
   const getSeverityColor = (severity) => {
     const colors = {
       CRITICAL: "#e74c3c",
@@ -44,42 +38,33 @@ function AnomalyTable({ anomalies = [], loading = false, error = null }) {
         <thead>
           <tr>
             <th>Service</th>
-            <th>Expected</th>
-            <th>Actual</th>
-            <th>Deviation</th>
             <th>Severity</th>
+            <th>Explanation</th>
             <th>Time</th>
           </tr>
         </thead>
 
         <tbody>
-          {anomalies.map((a, index) => {
-            const severity = getSeverity(a.deviation);
+          {anomalies.map((a) => (
+            <tr key={a.id}>
+              <td>{a.service}</td>
 
-            return (
-              <tr key={`${a.service}-${index}`}>
-                <td>{a.service}</td>
-                <td>${a.expectedCost}</td>
-                <td>${a.actualCost}</td>
+              <td>
+                <span
+                  className="badge"
+                  style={{ backgroundColor: getSeverityColor(a.severity) }}
+                >
+                  {a.severity}
+                </span>
+              </td>
 
-                <td className="deviation">
-                  +${a.deviation}
-                </td>
+              <td style={{ maxWidth: "400px" }}>
+                {a.explanation}
+              </td>
 
-                <td>
-                  <span
-                    className="badge"
-                    style={{ backgroundColor: getSeverityColor(severity) }}
-                  >
-                    {severity}
-                  </span>
-                </td>
-
-                {/* 🔥 FORMATTED */}
-                <td>{formatDate(a.timestamp)}</td>
-              </tr>
-            );
-          })}
+              <td>{formatDate(a.timestamp)}</td>
+            </tr>
+          ))}
         </tbody>
       </table>
     </div>

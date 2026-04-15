@@ -1,9 +1,8 @@
 export type Anomaly = {
+  id: string;
   service: string;
-  expectedCost: number;
-  actualCost: number;
-  deviation: number;
-  severity: string;        // 🔥 ADD THIS
+  severity: string;
+  explanation: string;
   timestamp: string;
 };
 
