@@ -80,7 +80,7 @@ class StorageConsumer:
         try:
 
             event = CostInsightGeneratedEvent.model_validate(
-                base_event.model_dump()
+                base_event.model_dump(mode="json")
             )
 
             payload = event.payload

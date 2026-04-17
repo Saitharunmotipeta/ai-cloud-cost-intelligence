@@ -29,7 +29,7 @@ class DeadLetterQueue:
         """
 
         dlq_payload = {
-            "original_event": original_event.model_dump(),
+            "original_event": original_event.model_dump(mode="json"),
             "failure_reason": failure_reason,
             "retry_count": original_event.retry_count,
             "timestamp": datetime.now(timezone.utc).isoformat(),

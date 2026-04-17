@@ -73,7 +73,7 @@ class AnalyticsConsumer:
         try:
 
             # 🔹 Parse incoming event
-            event = CostDataIngestedEvent.model_validate(base_event.model_dump())
+            event = CostDataIngestedEvent.model_validate(base_event.model_dump(mode="json"))
 
             # 🔹 Emit "ready for analysis" event
             ready_payload = CostDataReadyForAnalysisPayload(

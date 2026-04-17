@@ -1,12 +1,9 @@
-from redis.asyncio import Redis
-
-from shared.broker.redis_streams_broker import RedisStreamsBroker
+from shared.broker.sqs_broker import SQSBroker
 
 
-def get_broker() -> RedisStreamsBroker:
+def get_broker() -> SQSBroker:
     """
-    Factory for RedisStreamsBroker.
-    Keeps wiring separate from business logic.
+    Factory for SQS Broker.
+    Replaces Redis with SQS.
     """
-    redis_url = "redis://redis:6379/0"  # Docker service name
-    return RedisStreamsBroker(redis_url=redis_url)
+    return SQSBroker()
