@@ -1,5 +1,8 @@
 import asyncio
 import logging
+import boto3
+import json
+import os
 from datetime import datetime, timezone
 from typing import Set
 
@@ -34,34 +37,75 @@ logger = logging.getLogger(__name__)
 
 
 class AnalyticsConsumer:
-
-    def __init__(self, broker: BrokerInterface, consumer_name: str):
-        self.broker = broker
+    def __init__(self, broker, consumer_name: str):
         self.consumer_name = consumer_name
-        self.processed_events: Set[str] = set()
-        self.detector = AnomalyDetector()
 
-    async def start(self):
-
-        await self.broker.create_consumer_group(STREAM_NAME, GROUP_NAME)
-
-        logger.info(
-            "Starting analytics consumer",
-            extra={"consumer": self.consumer_name},
+        self.sqs = boto3.client(
+            "sqs",
+            region_name=os.getenv("AWS_DEFAULT_REGION")
         )
 
+        # Input queue (from ingestion)
+        self.queue_url = os.getenv("INGESTION_QUEUE_URL")
+
+        # Output queue (to next stage)
+        self.analytics_queue_url = os.getenv("ANALYTICS_QUEUE_URL")
+
+    async def start(self):
+        print(f"🚀 Analytics consumer started: {self.consumer_name}")
+
         while True:
+            try:
+                response = self.sqs.receive_message(
+                    QueueUrl=self.queue_url,
+                    MaxNumberOfMessages=5,
+                    WaitTimeSeconds=10
+                )
 
-            messages = await self.broker.consume(
-                stream=STREAM_NAME,
-                group_name=GROUP_NAME,
-                consumer_name=self.consumer_name,
-            )
+                messages = response.get("Messages", [])
 
-            for message_id, base_event in messages:
-                await self.handle_message(message_id, base_event)
+                for msg in messages:
+                    body = json.loads(msg["Body"])
 
-            await asyncio.sleep(0.1)
+                    print("📩 Received event:", body)
+
+                    payload = body["payload"]
+                    cost = payload["cost"]
+
+                    # 🔥 Simple anomaly detection
+                    if cost > 200:
+                        anomaly = True
+                        severity = "HIGH"
+                    else:
+                        anomaly = False
+                        severity = "LOW"
+
+                    print(f"⚠️ Anomaly: {anomaly}, Severity: {severity}")
+
+                    # 🔥 Create new event for next stage
+                    new_event = {
+                        "event_type": "cost_analyzed_v1",
+                        "original_event": body,
+                        "anomaly_detected": anomaly,
+                        "severity": severity
+                    }
+
+                    # 🔥 Send to analytics queue
+                    self.sqs.send_message(
+                        QueueUrl=self.analytics_queue_url,
+                        MessageBody=json.dumps(new_event)
+                    )
+
+                    # ✅ Delete message after processing
+                    self.sqs.delete_message(
+                        QueueUrl=self.queue_url,
+                        ReceiptHandle=msg["ReceiptHandle"]
+                    )
+
+            except Exception as e:
+                logger.error(f"Error processing message: {str(e)}")
+
+            await asyncio.sleep(2)
 
     async def handle_message(self, message_id: str, base_event: BaseEvent):
 

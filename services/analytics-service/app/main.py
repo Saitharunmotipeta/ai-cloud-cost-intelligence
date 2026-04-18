@@ -17,7 +17,6 @@ consumer_name = f"{socket.gethostname()}"
 
 consumer = AnalyticsConsumer(broker, consumer_name)
 
-
 @app.on_event("startup")
 async def startup_event():
     logger.info("Starting analytics consumer")
