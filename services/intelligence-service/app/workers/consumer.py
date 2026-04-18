@@ -1,96 +1,97 @@
 import asyncio
 import logging
+import boto3
+import json
+import os
 from typing import Set
 
-from shared.events.base_event import BaseEvent
-from shared.events.cost_anomaly_detected_v1 import CostAnomalyDetectedEvent
-from shared.events.cost_insight_generated_v1 import (
-    CostInsightGeneratedEvent,
-)
-
-from shared.broker.interface import BrokerInterface
-from shared.constants.streams import (
-    COST_ANOMALY_DETECTED_STREAM,
-    DEAD_LETTER_STREAM,
-    COST_INSIGHT_GENERATED_STREAM
-)
-
+from shared.events.cost_insight_generated_v1 import CostInsightGeneratedEvent
 from app.graph.graph_builder import build_graph
-
-
-STREAM_NAME = COST_ANOMALY_DETECTED_STREAM
-OUTPUT_STREAM = COST_INSIGHT_GENERATED_STREAM
-DLQ_STREAM = DEAD_LETTER_STREAM
-GROUP_NAME = "intelligence-group-v1"
 
 logger = logging.getLogger(__name__)
 
 
 class IntelligenceConsumer:
 
-    def __init__(self, broker: BrokerInterface, consumer_name: str):
+    def __init__(self, consumer_name: str):
 
-        self.broker = broker
         self.consumer_name = consumer_name
         self.processed_events: Set[str] = set()
 
         self.graph = build_graph()
 
-    async def start(self):
-
-        await self.broker.create_consumer_group(STREAM_NAME, GROUP_NAME)
-
-        logger.info(
-            "Starting intelligence consumer",
-            extra={
-                "consumer": self.consumer_name,
-                "stream": STREAM_NAME,
-                "group": GROUP_NAME,
-            },
+        self.sqs = boto3.client(
+            "sqs",
+            region_name=os.getenv("AWS_DEFAULT_REGION")
         )
 
+        # 🔥 Input queue (from analytics)
+        self.queue_url = os.getenv("ANALYTICS_QUEUE_URL")
+
+        # 🔥 Output queue (next stage)
+        self.output_queue_url = os.getenv("INTELLIGENCE_QUEUE_URL")
+
+    async def start(self):
+
+        logger.info(f"🧠 Intelligence consumer started: {self.consumer_name}")
+
         while True:
-
             try:
-
-                messages = await self.broker.consume(
-                    stream=STREAM_NAME,
-                    group_name=GROUP_NAME,
-                    consumer_name=self.consumer_name,
+                response = self.sqs.receive_message(
+                    QueueUrl=self.queue_url,
+                    MaxNumberOfMessages=5,
+                    WaitTimeSeconds=10
                 )
 
-                for message_id, base_event in messages:
-                    await self.handle_message(message_id, base_event)
+                messages = response.get("Messages", [])
 
-            except Exception:
-                logger.exception("Failed while consuming events")
+                for msg in messages:
+                    body = json.loads(msg["Body"])
 
-            await asyncio.sleep(1)
+                    print("📩 Received analyzed event:", body)
 
-    async def handle_message(self, message_id: str, base_event: BaseEvent):
+                    await self.handle_message(body)
 
-        if base_event.event_id in self.processed_events:
-            await self.broker.acknowledge(STREAM_NAME, GROUP_NAME, message_id)
-            return
+                    # ✅ delete message after processing
+                    self.sqs.delete_message(
+                        QueueUrl=self.queue_url,
+                        ReceiptHandle=msg["ReceiptHandle"]
+                    )
+
+            except Exception as e:
+                logger.exception(f"Error consuming messages: {str(e)}")
+
+            await asyncio.sleep(2)
+
+    async def handle_message(self, body: dict):
 
         try:
+            # 🔥 Extract original ingestion event
+            original_event = body["original_event"]
+            payload = original_event["payload"]
 
-            event = CostAnomalyDetectedEvent.model_validate(base_event.model_dump())
-            payload = event.payload
+            account_id = payload["account_id"]
+            service = payload["service"]
+            cost = payload["cost"]
 
-            # 🔥 Invoke LangGraph (with full context)
+            # 🔥 TEMP LOGIC (Option A)
+            expected_cost = cost * 0.7
+            deviation = cost - expected_cost
+
+            print(f"📊 Derived → expected: {expected_cost}, deviation: {deviation}")
+
+            # 🔥 Invoke LangGraph
             result = await self.graph.ainvoke({
                 "event": {
-                    "account_id": payload.account_id,
-                    "service": payload.service,
-                    "cost": payload.cost,
-                    "expected_cost": payload.expected_cost,
-                    "deviation": payload.deviation,
+                    "account_id": account_id,
+                    "service": service,
+                    "cost": cost,
+                    "expected_cost": expected_cost,
+                    "deviation": deviation,
                 },
-                "anomaly_type": getattr(payload, "anomaly_type", "unknown"),
+                "anomaly_type": "basic",
             })
 
-            # 🔥 Use AI outputs properly
             explanation = result.get("explanation", "No explanation generated")
             root_cause = result.get("root_cause", "Unknown")
             confidence = result.get("confidence", "low")
@@ -99,47 +100,32 @@ class IntelligenceConsumer:
             # 🔥 Build insight event
             insight_event = CostInsightGeneratedEvent.create(
                 source="intelligence-service",
-                correlation_id=event.correlation_id,
-                account_id=payload.account_id,
-                service=payload.service,
+                correlation_id=original_event["correlation_id"],
+                account_id=account_id,
+                service=service,
                 severity=severity,
-                message=explanation,   # 🔥 AI explanation
-                recommendation=root_cause,  # 🔥 mapped for now
+                message=explanation,
+                recommendation=root_cause,
             )
 
-            await self.broker.publish(OUTPUT_STREAM, insight_event)
+            print("🧠 Insight Generated:", explanation)
+
+            # 🔥 Send to next queue
+            self.sqs.send_message(
+                QueueUrl=self.output_queue_url,
+                MessageBody=json.dumps(insight_event.model_dump(mode="json"))
+            )
 
             logger.info(
                 "Insight generated",
                 extra={
                     "event_id": insight_event.event_id,
                     "correlation_id": insight_event.correlation_id,
-                    "account_id": payload.account_id,
-                    "service": payload.service,
+                    "account_id": account_id,
+                    "service": service,
                     "confidence": confidence,
                 },
             )
 
-            self.processed_events.add(base_event.event_id)
-
-            await self.broker.acknowledge(STREAM_NAME, GROUP_NAME, message_id)
-
         except Exception as e:
-
             logger.exception(f"Insight generation failed: {str(e)}")
-
-            base_event.increment_retry()
-
-            if base_event.retry_count >= 3:
-
-                logger.error("Event moved to DLQ")
-
-                await self.broker.publish(DLQ_STREAM, base_event)
-
-                await self.broker.acknowledge(STREAM_NAME, GROUP_NAME, message_id)
-                return
-
-            # retry
-            await self.broker.publish(STREAM_NAME, base_event)
-
-            await self.broker.acknowledge(STREAM_NAME, GROUP_NAME, message_id)

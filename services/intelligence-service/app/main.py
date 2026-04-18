@@ -1,18 +1,18 @@
 import asyncio
 import socket
 import logging
+import os
 
 from fastapi import FastAPI
 from dotenv import load_dotenv
-import os
 
+# 🔥 Load env properly (keep this)
 load_dotenv(
     os.path.abspath(
         os.path.join(os.path.dirname(__file__), "../../../infrastructure/docker/.env")
     )
 )
 
-from app.core.broker import get_broker
 from app.workers.consumer import IntelligenceConsumer
 from shared.observability.logging import configure_logging
 from app.domain.embedding import get_embedding
@@ -23,13 +23,11 @@ app = FastAPI(title="Intelligence Service")
 
 configure_logging("intelligence-service")
 
-broker = get_broker()
-
-consumer_name = socket.gethostname()
-
-consumer = IntelligenceConsumer(broker, consumer_name)
-
 logger = logging.getLogger(__name__)
+
+# 🔥 NO broker anymore
+consumer_name = socket.gethostname()
+consumer = IntelligenceConsumer(consumer_name)
 
 
 @app.on_event("startup")
@@ -50,6 +48,8 @@ async def metrics():
         "status": "running"
     }
 
+
+# 🔥 RAG Mock Data Loader (unchanged)
 def load_mock_data():
     mock_insights = [
         {
