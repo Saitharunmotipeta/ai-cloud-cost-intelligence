@@ -13,7 +13,7 @@ broker = get_broker()
 
 consumer_name = socket.gethostname()
 
-consumer = StorageConsumer(broker, consumer_name)
+consumer = StorageConsumer(consumer_name)
 
 @app.on_event("startup")
 async def startup_event():   

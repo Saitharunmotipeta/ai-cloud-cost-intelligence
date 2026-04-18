@@ -1,150 +1,103 @@
 import asyncio
 import logging
+import boto3
+import json
+import os
 from typing import Set
 
 from sqlalchemy.orm import Session
 
-from shared.events.base_event import BaseEvent
-from shared.events.cost_insight_generated_v1 import CostInsightGeneratedEvent
-
-from shared.broker.interface import BrokerInterface
-
 from app.core.database import SessionLocal
 from app.services.insight_repository import InsightRepository
-from shared.constants.streams import COST_INSIGHT_GENERATED_STREAM, DEAD_LETTER_STREAM
-
-
-STREAM_NAME = COST_INSIGHT_GENERATED_STREAM
-DLQ_STREAM = DEAD_LETTER_STREAM
-GROUP_NAME = "storage-group-v1"
 
 logger = logging.getLogger(__name__)
 
-
 class StorageConsumer:
 
-    def __init__(self, broker: BrokerInterface, consumer_name: str):
+    def __init__(self, consumer_name: str):
 
-        self.broker = broker
         self.consumer_name = consumer_name
-
-        # protects against duplicate processing
         self.processed_events: Set[str] = set()
+
+        self.sqs = boto3.client(
+            "sqs",
+            region_name=os.getenv("AWS_DEFAULT_REGION")
+        )
+
+        # 🔥 Read from intelligence queue
+        self.queue_url = os.getenv("INTELLIGENCE_QUEUE_URL")
 
     async def start(self):
 
-        await self.broker.create_consumer_group(
-            STREAM_NAME,
-            GROUP_NAME,
-        )
-
-        logger.info(
-            "Starting storage consumer",
-            extra={
-                "consumer": self.consumer_name,
-                "stream": STREAM_NAME,
-            },
-        )
+        logger.info(f"💾 Storage consumer started: {self.consumer_name}")
 
         while True:
-
             try:
-
-                messages = await self.broker.consume(
-                    stream=STREAM_NAME,
-                    group_name=GROUP_NAME,
-                    consumer_name=self.consumer_name,
+                response = self.sqs.receive_message(
+                    QueueUrl=self.queue_url,
+                    MaxNumberOfMessages=5,
+                    WaitTimeSeconds=10
                 )
 
-                for message_id, base_event in messages:
-                    await self.handle_message(message_id, base_event)
+                messages = response.get("Messages", [])
 
-            except Exception:
+                for msg in messages:
+                    body = json.loads(msg["Body"])
 
-                logger.exception("Storage consumer failure")
+                    print("📥 Received insight event:", body)
 
-            await asyncio.sleep(1)
+                    await self.handle_message(body)
 
-    async def handle_message(self, message_id: str, base_event: BaseEvent):
+                    # ✅ delete message after storing
+                    self.sqs.delete_message(
+                        QueueUrl=self.queue_url,
+                        ReceiptHandle=msg["ReceiptHandle"]
+                    )
 
-        if base_event.event_id in self.processed_events:
+            except Exception as e:
+                logger.exception(f"Storage consumer failure: {str(e)}")
 
-            await self.broker.acknowledge(
-                STREAM_NAME,
-                GROUP_NAME,
-                message_id,
-            )
+            await asyncio.sleep(2)
 
-            return
+    async def handle_message(self, data: dict):
+
+        db: Session = SessionLocal()
 
         try:
-
-            event = CostInsightGeneratedEvent.model_validate(
-                base_event.model_dump(mode="json")
-            )
-
-            payload = event.payload
-
-            db: Session = SessionLocal()
-
             repo = InsightRepository(db)
 
+            payload = data.get("payload", {})
+
             repo.save_insight(
-                insight_id=payload.insight_id,
-                account_id=payload.account_id,
-                service=payload.service,
+                insight_id=payload.get("insight_id"),
+                account_id=payload.get("account_id"),
+                service=payload.get("service"),
 
-                severity=payload.severity,
-                impact=getattr(payload, "impact", "medium"),
-                anomaly_type=getattr(payload, "anomaly_type", "unknown"),
+                severity=payload.get("severity"),
+                impact=payload.get("impact", "medium"),
+                anomaly_type=payload.get("anomaly_type", "basic"),
 
-                explanation=getattr(payload, "explanation", None),
-                root_cause=getattr(payload, "root_cause", None),
-                action=getattr(payload, "recommendation", None),
-                confidence=getattr(payload, "confidence", "low"),
+                explanation=payload.get("message"),
+                root_cause=payload.get("recommendation"),
+                action=payload.get("recommendation"),
+                confidence=payload.get("confidence", "low"),
 
-                # fallback (optional)
-                message=getattr(payload, "message", None),
-                recommendation=getattr(payload, "recommendation", None),
+                message=payload.get("message"),
+                recommendation=payload.get("recommendation"),
 
-                generated_at=payload.generated_at,
+                generated_at=payload.get("generated_at"),
             )
-
-            db.close()
 
             logger.info(
-                "Insight stored",
+                "✅ Insight stored in DB",
                 extra={
-                    "insight_id": payload.insight_id,
-                    "account_id": payload.account_id,
+                    "event_id": data.get("event_id"),
+                    "account_id": payload.get("account_id"),  # 🔥 FIXED
                 },
             )
 
-            self.processed_events.add(base_event.event_id)
+        except Exception as e:
+            logger.exception(f"❌ Failed storing insight: {str(e)}")
 
-            await self.broker.acknowledge(
-                STREAM_NAME,
-                GROUP_NAME,
-                message_id,
-            )
-
-        except Exception:
-
-            logger.exception(
-                "Failed storing insight",
-                extra={
-                    "event_id": base_event.event_id,
-                },
-            )
-
-            base_event.increment_retry()
-
-            if base_event.retry_count >= 3:
-
-                await self.broker.publish(DLQ_STREAM, base_event)
-
-                await self.broker.acknowledge(
-                    STREAM_NAME,
-                    GROUP_NAME,
-                    message_id,
-                )
+        finally:
+            db.close()   # 🔥 ALWAYS closes
