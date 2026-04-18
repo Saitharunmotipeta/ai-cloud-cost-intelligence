@@ -80,6 +80,16 @@ class IntelligenceConsumer:
 
             print(f"📊 Derived → expected: {expected_cost}, deviation: {deviation}")
 
+            # 🔥 Pattern classification (NEW CORE LOGIC)
+            if deviation > 200:
+                anomaly_type = "cost_spike"
+            elif deviation > 50:
+                anomaly_type = "gradual_increase"
+            else:
+                anomaly_type = "low_usage"
+
+            print(f"🧠 Classified Pattern → {anomaly_type}")
+
             # 🔥 Invoke LangGraph
             result = await self.graph.ainvoke({
                 "event": {
@@ -89,13 +99,20 @@ class IntelligenceConsumer:
                     "expected_cost": expected_cost,
                     "deviation": deviation,
                 },
-                "anomaly_type": "basic",
+                "anomaly_type": anomaly_type,   # 🔥 FIXED (was "basic")
             })
 
-            explanation = result.get("explanation", "No explanation generated")
-            root_cause = result.get("root_cause", "Unknown")
+            # 🔥 Fallback safety (IMPORTANT)
+            explanation = result.get("explanation")
+            root_cause = result.get("root_cause")
             confidence = result.get("confidence", "low")
             severity = result.get("severity", "low")
+
+            if not explanation:
+                explanation = f"Cost pattern '{anomaly_type}' detected. Likely due to usage variation or configuration changes."
+            
+            if not root_cause:
+                root_cause = "Unknown - requires deeper analysis"
 
             # 🔥 Build insight event
             insight_event = CostInsightGeneratedEvent.create(
@@ -124,6 +141,7 @@ class IntelligenceConsumer:
                     "account_id": account_id,
                     "service": service,
                     "confidence": confidence,
+                    "pattern": anomaly_type,   # 🔥 extra observability
                 },
             )
 

@@ -1,18 +1,22 @@
 def format_anomaly(anomaly: dict) -> str:
     return f"""
-    Service: {anomaly.get("service")}
-    ServiceType: {anomaly.get("service")}   # 🔥 boost importance
-    Type: {anomaly.get("anomaly_type")}
+    Pattern: {anomaly.get("anomaly_type")}
+    PatternType: {anomaly.get("anomaly_type")}   # 🔥 boost match
+
     Severity: {anomaly.get("severity")}
-    Description: {anomaly.get("description")}
+
+    Cost: {anomaly.get("cost")}
+    Deviation: {anomaly.get("deviation")}
     """
 
 
 def format_insight(insight: dict) -> str:
     return f"""
-    Service: {insight.get("service")}
-    Type: {insight.get("anomaly_type")}
+    Pattern: {insight.get("pattern")}
+    PatternType: {insight.get("pattern")}   # 🔥 boost embedding weight
+
     Severity: {insight.get("severity")}
+
     Root Cause: {insight.get("root_cause")}
     Explanation: {insight.get("explanation")}
     """

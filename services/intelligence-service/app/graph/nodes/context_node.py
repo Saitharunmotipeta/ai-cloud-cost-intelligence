@@ -10,7 +10,7 @@ def context_node(state):
     cost = event["cost"]
     expected = event["expected_cost"]
 
-    # 🔥 existing logic
+    # 🔥 ratio + trend logic (keep)
     ratio = (cost - expected) / expected if expected else 0
     spike = ratio > 1
 
@@ -21,32 +21,34 @@ def context_node(state):
     else:
         trend = "stable"
 
-    # 🔥 RAG query
+    # 🔥 Use pattern instead of service
+    anomaly_type = state.get("anomaly_type", "unknown")
+
+    # 🔥 RAG query (pattern-driven)
     query_text = format_anomaly({
-        "service": event["service"],
-        "anomaly_type": state.get("anomaly_type", "unknown"),
-        "region": event.get("region", "unknown"),
+        "anomaly_type": anomaly_type,
         "severity": state.get("severity", "unknown"),
-        "description": f"Cost deviation {event['deviation']}"
+        "cost": cost,
+        "deviation": event["deviation"]
     })
 
     query_embedding = get_embedding(query_text)
 
     results = vector_store.search(query_embedding, top_k=5)
 
-    # 🔥 STRICT FILTER (core fix)
+    # 🔥 NEW FILTER: match by pattern
     filtered = [
         r for r in results
-        if r.get("service") == event["service"]
+        if r.get("pattern") == anomaly_type
     ]
 
-    # 🔥 DEBUG (temporary — remove later)
-    print("\n🔍 DEBUG → Event Service:", event["service"])
-    print("🔍 DEBUG → Retrieved Services:", [r.get("service") for r in results])
-    print("🔍 DEBUG → Filtered Services:", [r.get("service") for r in filtered])
+    # 🔥 fallback: if no exact match, use top results
+    final_context = filtered if filtered else results[:2]
 
-    # 🚨 CRITICAL: NO FALLBACK TO WRONG DATA
-    final_context = filtered
+    # 🔥 DEBUG
+    print("\n🔍 DEBUG → Pattern:", anomaly_type)
+    print("🔍 DEBUG → Retrieved Patterns:", [r.get("pattern") for r in results])
+    print("🔍 DEBUG → Filtered Patterns:", [r.get("pattern") for r in filtered])
 
     return {
         "service": event["service"],
@@ -58,5 +60,6 @@ def context_node(state):
         "spike": spike,
         "trend": trend,
 
+        "pattern": anomaly_type,   # 🔥 important for LLM
         "context": final_context
     }

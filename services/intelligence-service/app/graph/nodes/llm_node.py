@@ -19,22 +19,18 @@ def llm_node(state):
                 anomaly_type=state["anomaly_type"],
                 trend=state["trend"],
                 ratio=state["ratio"],
-                historical_trend=state["historical_trend"],
-                repeat_anomaly=state["repeat_anomaly"],
-                context=state.get("context", [])   # 🔥 NEW
+                historical_trend=state.get("historical_trend", "unknown"),
+                repeat_anomaly=state.get("repeat_anomaly", False),
+                context=state.get("context", []),  # 🔥 pass raw
             )
 
-            if llm is None or result is None:
-                return {
-                    "explanation": "Moderate anomaly detected; no deep analysis triggered.",
-                    "root_cause": "Likely minor fluctuation",
-                    "confidence": "low"
-                }
+            if not result:
+                raise ValueError("Empty LLM response")
 
             return {
-                "explanation": result["explanation"],
-                "root_cause": result["root_cause"],
-                "confidence": result["confidence"],
+                "explanation": result.get("explanation"),
+                "root_cause": result.get("root_cause"),
+                "confidence": result.get("confidence"),
             }
 
         except Exception as e:
@@ -43,7 +39,6 @@ def llm_node(state):
             if attempt < max_retries:
                 time.sleep(delay)
 
-    # 🔥 CONSISTENT fallback
     return {
         "explanation": "AI explanation unavailable",
         "root_cause": "LLM failed after retries",

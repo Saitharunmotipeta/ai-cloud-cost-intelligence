@@ -1,11 +1,10 @@
 import os
 import json
 from groq import Groq
-
 import re
 
+
 def safe_parse_json(text):
-    import json
     try:
         return json.loads(text)
     except:
@@ -45,21 +44,19 @@ class LLMExplainer:
         ratio,
         historical_trend,
         repeat_anomaly,
-        context=None,   # 🔥 NEW
+        context=None,
     ):
 
-        # 🔥 Build context text safely
         def build_context_text(context):
             if not context:
-                return "No similar past anomalies found."
+                return "No similar patterns available."
 
             lines = []
-            for c in context[:3]:  # safety limit
+            for c in context[:3]:
                 line = (
-                    f"Service: {c.get('service')}, "
-                    f"Type: {c.get('anomaly_type')}, "
-                    f"Root Cause: {c.get('root_cause')}, "
-                    f"Explanation: {c.get('explanation')}"
+                    f"Pattern: {c.get('pattern')}, "
+                    f"Cause: {c.get('root_cause')}, "
+                    f"Insight: {c.get('explanation')}"
                 )
                 lines.append(line)
 
@@ -68,66 +65,49 @@ class LLMExplainer:
         context_text = build_context_text(context)
 
         prompt = f"""
-    You are a cloud cost optimization expert.
+        You are a senior cloud cost analyst.
 
-    Analyze the anomaly:
+        You MUST analyze the anomaly using NUMBERS and LOGIC.
 
-    Service: {service}
-    Actual Cost: {cost}
-    Expected Cost: {expected_cost}
-    Deviation: {deviation}
-    Anomaly Type: {anomaly_type}
-    Trend: {trend}
-    Change Ratio: {ratio}
-    Historical Trend: {historical_trend}
-    Repeated Anomaly: {repeat_anomaly}
+        DATA:
+        Service: {service}
+        Actual Cost: {cost}
+        Expected Cost: {expected_cost}
+        Deviation: {deviation}
+        Ratio: {ratio}
+        Trend: {trend}
+        Anomaly Type: {anomaly_type}
 
-    Similar past anomalies:
-    {context_text}
+        REFERENCE PATTERNS:
+        {context_text}
 
-    You MUST return ONLY valid JSON.
-    Do NOT include any explanation outside JSON.
-    Do NOT include markdown.
-    Do NOT include text before or after JSON.
+        INSTRUCTIONS:
+        1. Calculate how significant the deviation is
+        2. Explain what this deviation implies
+        3. Compare with similar patterns if relevant
+        4. Provide a SPECIFIC cause (not generic)
+        5. Avoid vague phrases like "usage variation"
 
-    If you fail to follow this, the system will break.
-
-    Return JSON in this format:
-
-    {{
-    "explanation": "...",
-    "root_cause": "...",
-    "confidence": "low | medium | high"
-    }}
-
-    Rules:
-    - Compare with similar past anomalies if relevant
-    - Identify patterns, not just describe numbers
-    - Be concise and actionable
-    - No extra text
-    """
+        OUTPUT STRICT JSON:
+        {{
+        "explanation": "...must include numbers and reasoning...",
+        "root_cause": "...specific cause...",
+        "confidence": "low | medium | high"
+        }}
+        """
 
         try:
             completion = self.client.chat.completions.create(
                 model=self.model,
                 messages=[{"role": "user", "content": prompt}],
-                temperature=0.2,
-                max_tokens=80,
+                temperature=0.3,
+                max_tokens=250,  # 🔥 increased
             )
 
             text = completion.choices[0].message.content.strip()
+            print("🔎 RAW LLM OUTPUT:", text)
 
-            # 🔥 SAFE PARSE
-            try:
-                data = safe_parse_json(text)
-            except Exception:
-                data = {
-                    "explanation": "AI response parsing failed",
-                    "root_cause": "Unstructured output from model",
-                    "confidence": "low"
-                }
-
-            return data
+            return safe_parse_json(text)
 
         except Exception as e:
             return {

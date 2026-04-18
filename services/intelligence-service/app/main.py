@@ -49,22 +49,25 @@ async def metrics():
     }
 
 
-# 🔥 RAG Mock Data Loader (unchanged)
 def load_mock_data():
     mock_insights = [
         {
-            "service": "EC2",
-            "anomaly_type": "spike",
+            "pattern": "cost_spike",
             "severity": "high",
-            "root_cause": "Auto-scaling misconfiguration",
-            "explanation": "Instances scaled aggressively due to low threshold"
+            "root_cause": "Sudden increase in usage or misconfiguration",
+            "explanation": "A sudden spike in usage can lead to unexpected cost increases across any service."
         },
         {
-            "service": "Lambda",
-            "anomaly_type": "cost_increase",
+            "pattern": "gradual_increase",
             "severity": "medium",
-            "root_cause": "High invocation rate",
-            "explanation": "Unexpected surge in function calls"
+            "root_cause": "Steady growth in workload or traffic",
+            "explanation": "Costs increasing gradually may indicate scaling demand or inefficient resource usage."
+        },
+        {
+            "pattern": "low_usage",
+            "severity": "low",
+            "root_cause": "Normal usage behavior",
+            "explanation": "Cost levels are within expected range with no significant anomalies."
         }
     ]
 
