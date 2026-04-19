@@ -5,21 +5,21 @@ rule_engine = RuleEngine()
 
 def rule_node(state):
 
-    event = state["event"]
-
     result = rule_engine.generate_recommendation(
-        service=event["service"],
-        cost=event["cost"],
-        expected_cost=event["expected_cost"],
-        anomaly_type=state["anomaly_type"],   # ✅ NEW
-        trend=state["trend"],                 # ✅ NEW
+        service=state["service"],
+        cost=state["cost"],
+        expected_cost=state["expected_cost"],
+        anomaly_type=state["anomaly_type"],
+        trend=state["trend"],
     )
 
     return {
         "recommendation": result["recommendation"],
-        "service": event["service"],
-        "impacct":result["impact"],
-        "cost": event["cost"],
-        "expected_cost": event["expected_cost"],
-        "deviation": event["deviation"],
+        "impact": result["impact"],
+
+        # 🔥 keep state consistent
+        "service": state["service"],
+        "cost": state["cost"],
+        "expected_cost": state["expected_cost"],
+        "deviation": state["deviation"],
     }

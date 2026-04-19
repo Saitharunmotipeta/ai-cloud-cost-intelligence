@@ -5,12 +5,10 @@ from app.domain.rag_formatter import format_anomaly
 
 def context_node(state):
 
-    event = state["event"]
+    cost = state["cost"]
+    expected = state["expected_cost"]
 
-    cost = event["cost"]
-    expected = event["expected_cost"]
-
-    # 🔥 ratio + trend logic (keep)
+    # 🔥 ratio + trend logic
     ratio = (cost - expected) / expected if expected else 0
     spike = ratio > 1
 
@@ -21,28 +19,26 @@ def context_node(state):
     else:
         trend = "stable"
 
-    # 🔥 Use pattern instead of service
     anomaly_type = state.get("anomaly_type", "unknown")
 
-    # 🔥 RAG query (pattern-driven)
+    # 🔥 RAG query
     query_text = format_anomaly({
         "anomaly_type": anomaly_type,
         "severity": state.get("severity", "unknown"),
         "cost": cost,
-        "deviation": event["deviation"]
+        "deviation": state["deviation"]   # ✅ FIXED
     })
 
     query_embedding = get_embedding(query_text)
 
     results = vector_store.search(query_embedding, top_k=5)
 
-    # 🔥 NEW FILTER: match by pattern
+    # 🔥 filter by pattern
     filtered = [
         r for r in results
         if r.get("pattern") == anomaly_type
     ]
 
-    # 🔥 fallback: if no exact match, use top results
     final_context = filtered if filtered else results[:2]
 
     # 🔥 DEBUG
@@ -51,15 +47,15 @@ def context_node(state):
     print("🔍 DEBUG → Filtered Patterns:", [r.get("pattern") for r in filtered])
 
     return {
-        "service": event["service"],
+        "service": state["service"],   # ✅ FIXED
         "cost": cost,
         "expected_cost": expected,
-        "deviation": event["deviation"],
+        "deviation": state["deviation"],
 
         "ratio": ratio,
         "spike": spike,
         "trend": trend,
 
-        "pattern": anomaly_type,   # 🔥 important for LLM
+        "pattern": anomaly_type,
         "context": final_context
     }

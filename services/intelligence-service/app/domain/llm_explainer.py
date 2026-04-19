@@ -107,7 +107,11 @@ class LLMExplainer:
             text = completion.choices[0].message.content.strip()
             print("🔎 RAW LLM OUTPUT:", text)
 
-            return safe_parse_json(text)
+            data = safe_parse_json(text)
+
+            print("✅ PARSED EXPLANATION:", data)
+            
+            return data
 
         except Exception as e:
             return {

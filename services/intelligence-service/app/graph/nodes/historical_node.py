@@ -1,8 +1,8 @@
 def historical_node(state):
 
-    event = state["event"]
+    # event = state["event"]
 
-    current_cost = event["cost"]
+    current_cost = state["cost"]
 
     # 🔥 MOCK (replace later with DB/service call)
     past_costs = [95, 100, 105, 98, 102]

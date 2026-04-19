@@ -25,10 +25,7 @@ class IntelligenceConsumer:
             region_name=os.getenv("AWS_DEFAULT_REGION")
         )
 
-        # 🔥 Input queue (from analytics)
         self.queue_url = os.getenv("ANALYTICS_QUEUE_URL")
-
-        # 🔥 Output queue (next stage)
         self.output_queue_url = os.getenv("INTELLIGENCE_QUEUE_URL")
 
     async def start(self):
@@ -52,7 +49,6 @@ class IntelligenceConsumer:
 
                     await self.handle_message(body)
 
-                    # ✅ delete message after processing
                     self.sqs.delete_message(
                         QueueUrl=self.queue_url,
                         ReceiptHandle=msg["ReceiptHandle"]
@@ -66,7 +62,6 @@ class IntelligenceConsumer:
     async def handle_message(self, body: dict):
 
         try:
-            # 🔥 Extract original ingestion event
             original_event = body["original_event"]
             payload = original_event["payload"]
 
@@ -74,13 +69,11 @@ class IntelligenceConsumer:
             service = payload["service"]
             cost = payload["cost"]
 
-            # 🔥 TEMP LOGIC (Option A)
             expected_cost = cost * 0.7
             deviation = cost - expected_cost
 
             print(f"📊 Derived → expected: {expected_cost}, deviation: {deviation}")
 
-            # 🔥 Pattern classification (NEW CORE LOGIC)
             if deviation > 200:
                 anomaly_type = "cost_spike"
             elif deviation > 50:
@@ -90,31 +83,31 @@ class IntelligenceConsumer:
 
             print(f"🧠 Classified Pattern → {anomaly_type}")
 
-            # 🔥 Invoke LangGraph
+            # 🔥 FLAT STATE (FIXED)
             result = await self.graph.ainvoke({
-                "event": {
-                    "account_id": account_id,
-                    "service": service,
-                    "cost": cost,
-                    "expected_cost": expected_cost,
-                    "deviation": deviation,
-                },
-                "anomaly_type": anomaly_type,   # 🔥 FIXED (was "basic")
+                "account_id": account_id,
+                "service": service,
+                "cost": cost,
+                "expected_cost": expected_cost,
+                "deviation": deviation,
+                "anomaly_type": anomaly_type,
             })
 
-            # 🔥 Fallback safety (IMPORTANT)
             explanation = result.get("explanation")
             root_cause = result.get("root_cause")
             confidence = result.get("confidence", "low")
-            severity = result.get("severity", "low")
+            # 🔥 use upstream severity FIRST
+            incoming_severity = body.get("severity", "LOW")
+
+            # 🔥 fallback only if LLM explicitly gives
+            severity = incoming_severity
 
             if not explanation:
                 explanation = f"Cost pattern '{anomaly_type}' detected. Likely due to usage variation or configuration changes."
-            
+
             if not root_cause:
                 root_cause = "Unknown - requires deeper analysis"
 
-            # 🔥 Build insight event
             insight_event = CostInsightGeneratedEvent.create(
                 source="intelligence-service",
                 correlation_id=original_event["correlation_id"],
@@ -127,22 +120,9 @@ class IntelligenceConsumer:
 
             print("🧠 Insight Generated:", explanation)
 
-            # 🔥 Send to next queue
             self.sqs.send_message(
                 QueueUrl=self.output_queue_url,
                 MessageBody=json.dumps(insight_event.model_dump(mode="json"))
-            )
-
-            logger.info(
-                "Insight generated",
-                extra={
-                    "event_id": insight_event.event_id,
-                    "correlation_id": insight_event.correlation_id,
-                    "account_id": account_id,
-                    "service": service,
-                    "confidence": confidence,
-                    "pattern": anomaly_type,   # 🔥 extra observability
-                },
             )
 
         except Exception as e:
