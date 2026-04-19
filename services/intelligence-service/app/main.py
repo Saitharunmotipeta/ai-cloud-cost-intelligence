@@ -17,7 +17,7 @@ from app.workers.consumer import IntelligenceConsumer
 from shared.observability.logging import configure_logging
 from app.domain.embedding import get_embedding
 from app.domain.rag_store import vector_store
-from app.domain.rag_formatter import format_insight
+from app.domain.rag_formatter import format_insight_for_embedding
 
 app = FastAPI(title="Intelligence Service")
 
@@ -72,6 +72,6 @@ def load_mock_data():
     ]
 
     for insight in mock_insights:
-        text = format_insight(insight)
+        text = format_insight_for_embedding(insight)
         emb = get_embedding(text)
         vector_store.add(emb, insight)

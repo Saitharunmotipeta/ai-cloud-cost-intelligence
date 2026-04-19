@@ -1,6 +1,6 @@
 from app.domain.embedding import get_embedding
 from app.domain.rag_store import vector_store
-from app.domain.rag_formatter import format_anomaly
+from app.domain.rag_formatter import format_anomaly_for_embedding
 
 
 def context_node(state):
@@ -22,7 +22,7 @@ def context_node(state):
     anomaly_type = state.get("anomaly_type", "unknown")
 
     # 🔥 RAG query
-    query_text = format_anomaly({
+    query_text = format_anomaly_for_embedding({
         "anomaly_type": anomaly_type,
         "severity": state.get("severity", "unknown"),
         "cost": cost,

@@ -11,6 +11,47 @@ from app.graph.graph_builder import build_graph
 logger = logging.getLogger(__name__)
 
 
+def format_insight_for_embedding(explanation: dict, service: str) -> str:
+    """
+    Convert structured LLM output into human-readable message
+    """
+    try:
+        deviation = explanation.get("deviation_significance", {})
+        implication = explanation.get("deviation_implication", {})
+        cause = explanation.get("specific_cause", {})
+
+        percentage = (
+            deviation.get("percentage")
+            or deviation.get("percentage_deviation")
+            or deviation.get("deviation_percentage")
+            or 0
+        )
+
+        trend = (
+            implication.get("trend")
+            or implication.get("description")
+            or "cost change"
+        )
+
+        if isinstance(trend, str):
+            trend = trend.replace("This deviation implies", "").strip()
+
+        root = (
+            cause.get("specific_cause") 
+            or cause.get("cause")
+            or cause.get("description")
+            or "unknown factors"
+        )
+
+        return (
+            f"{service.upper()} cost increased by {round(percentage, 2)}%. "
+            f"This indicates a {trend}. Likely due to {root}."
+        )
+
+    except Exception:
+        return f"{service.upper()} cost anomaly detected. Further analysis required."
+
+
 class IntelligenceConsumer:
 
     def __init__(self, consumer_name: str):
@@ -74,6 +115,7 @@ class IntelligenceConsumer:
 
             print(f"📊 Derived → expected: {expected_cost}, deviation: {deviation}")
 
+            # 🔥 Pattern classification (can remove later)
             if deviation > 200:
                 anomaly_type = "cost_spike"
             elif deviation > 50:
@@ -83,7 +125,6 @@ class IntelligenceConsumer:
 
             print(f"🧠 Classified Pattern → {anomaly_type}")
 
-            # 🔥 FLAT STATE (FIXED)
             result = await self.graph.ainvoke({
                 "account_id": account_id,
                 "service": service,
@@ -91,22 +132,30 @@ class IntelligenceConsumer:
                 "expected_cost": expected_cost,
                 "deviation": deviation,
                 "anomaly_type": anomaly_type,
+                "severity": body.get("severity", "LOW"),
             })
 
             explanation = result.get("explanation")
             root_cause = result.get("root_cause")
             confidence = result.get("confidence", "low")
-            # 🔥 use upstream severity FIRST
-            incoming_severity = body.get("severity", "LOW")
 
-            # 🔥 fallback only if LLM explicitly gives
+            incoming_severity = body.get("severity", "LOW")
             severity = incoming_severity
 
-            if not explanation:
-                explanation = f"Cost pattern '{anomaly_type}' detected. Likely due to usage variation or configuration changes."
+            # 🔥 FORMAT MESSAGE (MAIN UPGRADE)
+            if isinstance(explanation, dict):
+                message = format_insight_for_embedding(explanation, service)
+                details = json.dumps(explanation, indent=2)
+            else:
+                message = explanation or "AI explanation unavailable"
+                details = None
+
+            # 🔥 CLEAN ROOT CAUSE
+            if isinstance(root_cause, dict):
+                root_cause = root_cause.get("specific_cause") or json.dumps(root_cause)
 
             if not root_cause:
-                root_cause = "Unknown - requires deeper analysis"
+                root_cause = "Requires further investigation"
 
             insight_event = CostInsightGeneratedEvent.create(
                 source="intelligence-service",
@@ -114,11 +163,11 @@ class IntelligenceConsumer:
                 account_id=account_id,
                 service=service,
                 severity=severity,
-                message=explanation,
-                recommendation=root_cause,
+                message=message,              # 👈 HUMAN READABLE
+                recommendation=root_cause,    # 👈 CLEAN STRING
             )
 
-            print("🧠 Insight Generated:", explanation)
+            print("🧠 Insight Generated:", message)
 
             self.sqs.send_message(
                 QueueUrl=self.output_queue_url,

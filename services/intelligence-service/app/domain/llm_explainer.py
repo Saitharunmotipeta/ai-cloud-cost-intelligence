@@ -87,11 +87,23 @@ class LLMExplainer:
         3. Compare with similar patterns if relevant
         4. Provide a SPECIFIC cause (not generic)
         5. Avoid vague phrases like "usage variation"
+        6.Do NOT include formulas like (x/y)*100
+        7.Always return computed numbers
 
-        OUTPUT STRICT JSON:
-        {{
-        "explanation": "...must include numbers and reasoning...",
-        "root_cause": "...specific cause...",
+        STRICT RULES:
+
+        - Output ONLY valid JSON
+        - Do NOT truncate output
+        - Ensure JSON is COMPLETE and CLOSED
+        - Do NOT include markdown (```)
+        - Do NOT include explanations outside JSON
+        - If response is too long, SUMMARIZE instead of cutting off
+
+        FINAL OUTPUT FORMAT:
+
+        {{  
+        "explanation": "...",
+        "root_cause": "...",
         "confidence": "low | medium | high"
         }}
         """
@@ -100,8 +112,8 @@ class LLMExplainer:
             completion = self.client.chat.completions.create(
                 model=self.model,
                 messages=[{"role": "user", "content": prompt}],
-                temperature=0.3,
-                max_tokens=250,  # 🔥 increased
+                temperature=0.2,
+                max_tokens=500,  # 🔥 increased
             )
 
             text = completion.choices[0].message.content.strip()
@@ -110,7 +122,7 @@ class LLMExplainer:
             data = safe_parse_json(text)
 
             print("✅ PARSED EXPLANATION:", data)
-            
+
             return data
 
         except Exception as e:
