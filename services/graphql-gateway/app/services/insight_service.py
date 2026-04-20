@@ -2,17 +2,9 @@ from contextlib import contextmanager
 from uuid import UUID
 from sqlalchemy.orm import Session
 from sqlalchemy import func, cast, Date
-import time
 
 from app.core.database import SessionLocal
 from app.models.insight import Insight
-
-
-# -------------------------------
-# CACHE (PER ACCOUNT)
-# -------------------------------
-_cache = {}
-CACHE_TTL = 3600  # 🔥 1 hour
 
 
 # -------------------------------
@@ -38,7 +30,7 @@ def parse_uuid(value: str) -> UUID:
 
 
 # -------------------------------
-# CORE QUERY (SINGLE SOURCE OF TRUTH)
+# CORE QUERY (REAL-TIME)
 # -------------------------------
 def get_filtered_insights(
     account_id: str,
@@ -50,23 +42,13 @@ def get_filtered_insights(
 
     account_id = parse_uuid(account_id)
 
-    now = time.time()
-    cache_key = f"{account_id}_{service}_{severity}_{limit}_{offset}"
-
-    # ✅ CACHE HIT
-    if (
-        cache_key in _cache
-        and now - _cache[cache_key]["timestamp"] < CACHE_TTL
-    ):
-        return _cache[cache_key]["data"]
-
     with get_db() as db:
 
         query = db.query(Insight).filter(
             Insight.account_id == account_id
         )
 
-        # 🔥 FILTERS
+        # 🔥 OPTIONAL FILTERS
         if service:
             query = query.filter(Insight.service == service)
 
@@ -80,12 +62,6 @@ def get_filtered_insights(
             .offset(offset)
             .all()
         )
-
-    # ✅ STORE CACHE
-    _cache[cache_key] = {
-        "data": results,
-        "timestamp": now
-    }
 
     return results
 
