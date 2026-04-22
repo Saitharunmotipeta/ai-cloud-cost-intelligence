@@ -1,6 +1,4 @@
-from app.domain.embedding import get_embedding
-from app.domain.rag_store import vector_store
-from app.domain.rag_formatter import format_anomaly_for_embedding
+import app.domain.mock_data as mock_data
 
 
 def context_node(state):
@@ -8,7 +6,6 @@ def context_node(state):
     cost = state["cost"]
     expected = state["expected_cost"]
 
-    # 🔥 ratio + trend logic
     ratio = (cost - expected) / expected if expected else 0
     spike = ratio > 1
 
@@ -21,33 +18,20 @@ def context_node(state):
 
     anomaly_type = state.get("anomaly_type", "unknown")
 
-    # 🔥 RAG query
-    query_text = format_anomaly_for_embedding({
-        "anomaly_type": anomaly_type,
-        "severity": state.get("severity", "unknown"),
-        "cost": cost,
-        "deviation": state["deviation"]   # ✅ FIXED
-    })
-
-    query_embedding = get_embedding(query_text)
-
-    results = vector_store.search(query_embedding, top_k=5)
-
-    # 🔥 filter by pattern
-    filtered = [
-        r for r in results
-        if r.get("pattern") == anomaly_type
+    # 🔥 FIX: use mock_db correctly
+    results = [
+        item for item in mock_data.mock_db
+        if item["pattern"] == anomaly_type
     ]
 
-    final_context = filtered if filtered else results[:2]
+    final_context = results if results else mock_data.mock_db[:2]
 
-    # 🔥 DEBUG
     print("\n🔍 DEBUG → Pattern:", anomaly_type)
-    print("🔍 DEBUG → Retrieved Patterns:", [r.get("pattern") for r in results])
-    print("🔍 DEBUG → Filtered Patterns:", [r.get("pattern") for r in filtered])
+    print("🔍 DEBUG → Available Patterns:", [r.get("pattern") for r in mock_data.mock_db])
+    print("🔍 DEBUG → Selected Context:", final_context)
 
     return {
-        "service": state["service"],   # ✅ FIXED
+        "service": state["service"],
         "cost": cost,
         "expected_cost": expected,
         "deviation": state["deviation"],

@@ -49,29 +49,36 @@ async def metrics():
     }
 
 
+mock_db = []
+
+
 def load_mock_data():
-    mock_insights = [
+    global mock_db
+
+    mock_db = [
         {
             "pattern": "cost_spike",
             "severity": "high",
             "root_cause": "Sudden increase in usage or misconfiguration",
-            "explanation": "A sudden spike in usage can lead to unexpected cost increases across any service."
+            "explanation": "A sudden spike in usage can lead to unexpected cost increases."
         },
         {
             "pattern": "gradual_increase",
             "severity": "medium",
             "root_cause": "Steady growth in workload or traffic",
-            "explanation": "Costs increasing gradually may indicate scaling demand or inefficient resource usage."
+            "explanation": "Costs increasing gradually may indicate scaling demand or inefficiencies."
         },
         {
             "pattern": "low_usage",
             "severity": "low",
             "root_cause": "Normal usage behavior",
-            "explanation": "Cost levels are within expected range with no significant anomalies."
+            "explanation": "Cost levels are within expected range with no anomalies."
         }
     ]
 
-    for insight in mock_insights:
-        text = format_insight_for_embedding(insight)
-        emb = get_embedding(text)
-        vector_store.add(emb, insight)
+    logger.info("✅ Mock data loaded into memory")
+
+    # for insight in mock_db:
+    #     text = format_insight_for_embedding(insight)
+    #     emb = get_embedding(text)
+    #     vector_store.add(emb, insight)

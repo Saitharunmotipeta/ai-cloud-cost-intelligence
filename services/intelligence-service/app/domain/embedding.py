@@ -3,4 +3,5 @@ from fastembed import TextEmbedding
 _model = TextEmbedding()
 
 def get_embedding(text: str):
-    return list(_model.embed([text]))[0].tolist()
+    # 🔥 lightweight placeholder embedding
+    return [hash(text) % 1000 / 1000.0]

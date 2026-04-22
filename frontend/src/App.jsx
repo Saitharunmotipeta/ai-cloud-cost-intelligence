@@ -8,7 +8,7 @@ import Anomalies from "./pages/Anomalies";
 function App() {
 
   // 🔥 TEMP HARDCODE (SAFE + CLEAN)
-  const ACCOUNT_ID = "123e4567-e89b-12d3-a456-426614174000";
+  const ACCOUNT_ID = "11111111-1111-1111-1111-111111111111";
 
   // set only once
   if (!localStorage.getItem("account_id")) {

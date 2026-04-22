@@ -1,33 +1,27 @@
-FROM python:3.11-slim
+FROM public.ecr.aws/lambda/python:3.11
 
-WORKDIR /app
+# Set working directory (Lambda standard)
+WORKDIR /var/task
 
-# 🔥 System optimizations
+# 🔥 Env optimizations (keep these)
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PYTHONPATH="/var/task"
 
-# 🔥 Install only essential system deps (if needed)
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    && rm -rf /var/lib/apt/lists/*
+# 🔥 Copy requirements
+COPY requirements.txt .
 
-# 🔥 Copy only requirements first (cache layer)
-COPY services/intelligence-service/requirements.txt .
-
-# 🔥 Install dependencies (cached unless requirements change)
+# 🔥 Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 🔥 Copy app code (separate layer → faster rebuilds)
-COPY services/intelligence-service/app ./app
+# 🔥 Copy application code
+COPY app ./app
+COPY lambda_function.py .
+
+# 🔥 CRITICAL: shared module
 COPY shared ./shared
 
-# 🔥 Use non-root user (production best practice)
-RUN useradd -m appuser
-USER appuser
-
-EXPOSE 8000
-
-# 🔥 Faster startup + better performance tuning
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
+# 🔥 Lambda entry point (THIS replaces uvicorn)
+CMD ["lambda_function.lambda_handler"]

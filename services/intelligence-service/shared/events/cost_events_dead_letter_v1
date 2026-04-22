@@ -1,0 +1,41 @@
+from datetime import datetime, timezone
+from pydantic import BaseModel
+
+from .base_event import BaseEvent
+
+
+class DeadLetterPayload(BaseModel):
+
+    original_event: dict
+    failure_reason: str
+    retry_count: int
+    failed_at: datetime
+
+
+class DeadLetterEvent(BaseEvent):
+
+    event_type: str = "cost_events_dead_letter_v1"
+    version: int = 1
+
+    payload: DeadLetterPayload
+
+    @classmethod
+    def create(
+        cls,
+        source: str,
+        correlation_id: str,
+        original_event: dict,
+        failure_reason: str,
+        retry_count: int,
+    ):
+
+        return cls(
+            source=source,
+            correlation_id=correlation_id,
+            payload=DeadLetterPayload(
+                original_event=original_event,
+                failure_reason=failure_reason,
+                retry_count=retry_count,
+                failed_at=datetime.now(timezone.utc),
+            ),
+        )

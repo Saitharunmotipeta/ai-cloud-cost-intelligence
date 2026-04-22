@@ -7,4 +7,4 @@ python-dotenv
 langgraph==0.2.0
 boto3
 
-fastembed
+numpy==1.26.4
