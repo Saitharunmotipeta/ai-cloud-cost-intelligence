@@ -36,37 +36,37 @@ def get_graph():
     return graph
 
 
-# -------------------------
-# Formatter (FIXED)
-# -------------------------
 def format_insight_for_embedding(explanation: dict, service: str) -> str:
     try:
-        deviation = explanation.get("deviation_significance", 0)
+        if not explanation or not isinstance(explanation, dict):
+            return f"{service.upper()} cost anomaly detected. Further analysis required."
 
-        # handle ratio vs percentage
+        deviation = explanation.get("deviation_significance", 0)
+        implication = explanation.get("deviation_implication", "")
+        cause = explanation.get("specific_cause") or explanation.get("root_cause")
+
+        # ✅ FIXED percentage logic
         if isinstance(deviation, (int, float)):
             percentage = deviation * 100 if deviation <= 1 else deviation
         else:
             percentage = 0
 
-        trend = explanation.get("deviation_implication", "cost change")
+        # ✅ Clean implication text
+        implication_text = str(implication)\
+            .replace("The deviation implies", "")\
+            .replace("This deviation indicates", "")\
+            .strip()
 
-        if isinstance(trend, str):
-            trend = trend.replace("The deviation implies", "").strip()
-
-        # 🔥 FIX: support both keys
-        root = (
-            explanation.get("root_cause")
-            or explanation.get("specific_cause")
-            or "unknown factors"
-        )
+        # ✅ Clean cause
+        cause_text = str(cause).strip() if cause else "unknown factors"
 
         return (
-            f"{service.upper()} cost increased by {round(percentage, 2)}%. "
-            f"This indicates {trend}. Likely due to {root}."
+            f"{service.upper()} cost changed by {round(percentage, 2)}%. "
+            f"{implication_text}. Likely due to {cause_text}."
         )
 
-    except Exception:
+    except Exception as e:
+        print("❌ FORMAT ERROR:", str(e))
         return f"{service.upper()} cost anomaly detected. Further analysis required."
 
 # -------------------------
@@ -130,8 +130,14 @@ def lambda_handler(event, context):
             # -------------------------
             if isinstance(explanation, dict):
                 message = format_insight_for_embedding(explanation, service)
+
+            elif isinstance(explanation, str) and explanation.strip():
+                message = explanation
+
             else:
-                message = explanation or "AI explanation unavailable"
+                # 🔥 FALLBACK USING ROOT CAUSE
+                fallback_cause = root_cause or "unknown factors"
+                message = f"{service.upper()} cost anomaly detected. Likely due to {fallback_cause}."
 
             # -------------------------
             # Clean root cause

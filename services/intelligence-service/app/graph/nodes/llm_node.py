@@ -4,7 +4,7 @@ import time
 
 def llm_node(state):
 
-    print("🔥 ENTERED LLM NODE")  # 🔥 DEBUG
+    print("🔥 ENTERED LLM NODE")
 
     max_retries = 2
     delay = 1
@@ -26,14 +26,36 @@ def llm_node(state):
                 context=state.get("context", []),
             )
 
+            # -------------------------
+            # 🔥 NORMALIZATION (KEY FIX)
+            # -------------------------
             if not result:
                 raise ValueError("Empty LLM response")
 
+            data = result  # LLM already returns structured dict
+
+            # Extract correct fields (REAL FIX)
+            explanation = data.get("deviation_implication")
+            root_cause = data.get("root_cause") or data.get("specific_cause")
+            confidence = data.get("confidence")
+
+            # -------------------------
+            # 🔥 VALIDATION (RELAXED + CORRECT)
+            # -------------------------
+            if not explanation:
+                raise ValueError("Missing explanation")
+
+            if not root_cause:
+                raise ValueError("Missing root cause")
+
+            # -------------------------
+            # ✅ SUCCESS RETURN
+            # -------------------------
             return {
-                "explanation": result.get("explanation"),
-                "root_cause": result.get("root_cause"),
-                "confidence": result.get("confidence"),
-                "severity": state.get("severity"),  # 🔥 CRITICAL FIX
+                "explanation": data,  # pass full structured object
+                "root_cause": root_cause,
+                "confidence": confidence or "medium",
+                "severity": state.get("severity"),
             }
 
         except Exception as e:
@@ -42,9 +64,14 @@ def llm_node(state):
             if attempt < max_retries:
                 time.sleep(delay)
 
+    # -------------------------
+    # 🔥 FINAL FALLBACK (SAFE)
+    # -------------------------
+    fallback_cause = state.get("anomaly_type", "unknown anomaly")
+
     return {
-        "explanation": "AI explanation unavailable",
-        "root_cause": "LLM failed after retries",
+        "explanation": None,
+        "root_cause": f"Detected {fallback_cause}, requires investigation",
         "confidence": "low",
         "severity": state.get("severity"),
     }

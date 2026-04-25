@@ -15,11 +15,7 @@ def safe_parse_json(text):
             except:
                 pass
 
-        return {
-            "explanation": "AI response parsing failed",
-            "root_cause": "Unstructured output from model",
-            "confidence": "low"
-        }
+        return None
 
 
 class LLMExplainer:
@@ -98,6 +94,10 @@ class LLMExplainer:
         - Do NOT include markdown (```)
         - Do NOT include explanations outside JSON
         - If response is too long, SUMMARIZE instead of cutting off
+        - Return ONLY valid JSON.
+        - All numeric values must be fully computed numbers.
+        - DO NOT include expressions like "1800/4200".
+        - DO NOT include text outside JSON.
 
         FINAL OUTPUT FORMAT:
 
@@ -126,8 +126,4 @@ class LLMExplainer:
             return data
 
         except Exception as e:
-            return {
-                "explanation": "AI explanation unavailable",
-                "root_cause": str(e),
-                "confidence": "low"
-            }
+            return None
