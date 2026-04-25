@@ -41,25 +41,22 @@ def get_graph():
 # -------------------------
 def format_insight_for_embedding(explanation: dict, service: str) -> str:
     try:
-        # 🔥 deviation %
         deviation = explanation.get("deviation_significance", 0)
 
+        # handle ratio vs percentage
         if isinstance(deviation, (int, float)):
-            percentage = deviation * 100
-        elif isinstance(deviation, dict):
-            percentage = deviation.get("percentage", 0)
+            percentage = deviation * 100 if deviation <= 1 else deviation
         else:
             percentage = 0
 
-        # 🔥 implication
         trend = explanation.get("deviation_implication", "cost change")
 
         if isinstance(trend, str):
-            trend = trend.replace("This deviation implies", "").strip()
+            trend = trend.replace("The deviation implies", "").strip()
 
-        # 🔥 root cause (IMPORTANT FIX)
+        # 🔥 FIX: support both keys
         root = (
-            explanation.get("root_cause")  # ✅ your LLM uses this
+            explanation.get("root_cause")
             or explanation.get("specific_cause")
             or "unknown factors"
         )
