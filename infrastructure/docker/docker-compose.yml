@@ -41,3 +41,12 @@ services:
     env_file:
       - ../../.env
     restart: always
+
+  frontend:
+    build:
+      context: ../../frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    ports:
+      - "3000:80"
+    restart: always
