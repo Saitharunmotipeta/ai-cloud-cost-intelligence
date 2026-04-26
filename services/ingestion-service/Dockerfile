@@ -15,7 +15,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # -------------------------
 # Copy service code
 # -------------------------
-COPY services/ingestion-service /app
+COPY services/ingestion-service/app ./app
 
 # -------------------------
 # Copy shared module (CRITICAL)
@@ -28,3 +28,5 @@ COPY shared /app/shared
 EXPOSE 8000
 
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+
