@@ -13,7 +13,7 @@ const authLink = setContext((_, { headers }) => {
 });
 
 const client = new ApolloClient({
-  link: authLink.concat(new HttpLink({ uri: "http://13.50.112.87:8000/graphql" })),
+  link: authLink.concat(new HttpLink({ uri: "https://4vycd1l8uj.execute-api.eu-north-1.amazonaws.com/prod/graphql" })),
   cache: new InMemoryCache(),
 });
 
