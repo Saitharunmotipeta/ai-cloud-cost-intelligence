@@ -1,20 +1,30 @@
 import React from 'react'
 import { Link, useLocation } from 'react-router-dom'
 
-function Navbar() {
+function Navbar({ sidebarOpen, setSidebarOpen }) {
   const location = useLocation()
 
   const isActive = (path) => location.pathname === path
 
   return (
     <nav className="navbar">
-      <div className="nav-container">
+      <div className="navbar-container">
+        <div className="navbar-left">
+          <button
+            className="sidebar-toggle"
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            aria-label="Toggle sidebar"
+          >
+            {sidebarOpen ? '✕' : '☰'}
+          </button>
 
-        <Link to="/" className="nav-logo">
-          AI Cloud Cost Intelligence
-        </Link>
+          <Link to="/" className="navbar-logo">
+            <div className="logo-icon">💰</div>
+            <span>Cost Intelligence</span>
+          </Link>
+        </div>
 
-        <div className="nav-links">
+        <div className="navbar-center">
           <Link
             to="/"
             className={`nav-link ${isActive('/') ? 'active' : ''}`}
@@ -35,6 +45,12 @@ function Navbar() {
           >
             Anomalies
           </Link>
+        </div>
+
+        <div className="navbar-right">
+          <div className="user-menu">
+            <span className="user-icon">👤</span>
+          </div>
         </div>
       </div>
     </nav>
