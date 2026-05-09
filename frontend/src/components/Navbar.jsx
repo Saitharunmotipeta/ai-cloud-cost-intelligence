@@ -45,6 +45,13 @@ function Navbar({ sidebarOpen, setSidebarOpen }) {
           >
             Anomalies
           </Link>
+
+          <Link
+            to="/about"
+            className={`nav-link ${isActive('/about') ? 'active' : ''}`}
+          >
+            About Project
+          </Link>
         </div>
 
         <div className="navbar-right">

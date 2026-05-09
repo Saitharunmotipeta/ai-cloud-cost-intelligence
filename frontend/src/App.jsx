@@ -4,6 +4,7 @@ import MainLayout from "./layout/MainLayout";
 import Dashboard from "./pages/Dashboard";
 import Insights from "./pages/Insights";
 import Anomalies from "./pages/Anomalies";
+import AboutProject from './pages/AboutProject';
 
 function App() {
 
@@ -22,6 +23,7 @@ function App() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/insights" element={<Insights />} />
           <Route path="/anomalies" element={<Anomalies />} />
+          <Route path="/about" element={<AboutProject />} />
         </Routes>
       </MainLayout>
     </Router>
