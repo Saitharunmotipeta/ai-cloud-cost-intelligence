@@ -6,3 +6,4 @@ __pycache__/
 .vscode/
 plan.txt
 raw/
+scripts/cost-intelligence-key.pem

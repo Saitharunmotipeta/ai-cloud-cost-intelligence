@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -e
 
+source .env
+
 # ==========================================
 # deploy.sh
 #
@@ -16,19 +18,6 @@ set -e
 # Usage:
 # ./scripts/deploy.sh
 # ==========================================
-
-# ------------------------------------------
-# CONFIGURATION
-# Replace these values with your own
-# ------------------------------------------
-
-S3_BUCKET="your-frontend-bucket-name"
-CLOUDFRONT_DISTRIBUTION_ID="YOUR_CLOUDFRONT_DISTRIBUTION_ID"
-
-EC2_HOST="ubuntu@YOUR_ELASTIC_IP"
-SSH_KEY_PATH="$HOME/.ssh/your-key.pem"
-
-REMOTE_PROJECT_DIR="~/AI-Cloud-Cost-Intelligence-Engine"
 
 # ------------------------------------------
 # Move to project root
@@ -82,10 +71,10 @@ echo "⬇️ Pulling latest code..."
 git pull origin main
 
 echo "🐳 Rebuilding and restarting containers..."
-docker compose up -d --build
+docker-compose up -d --build
 
 echo "📊 Running containers:"
-docker compose ps
+docker-compose ps
 EOF
 
 # ------------------------------------------

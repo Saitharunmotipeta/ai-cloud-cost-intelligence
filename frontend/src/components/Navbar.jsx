@@ -20,7 +20,7 @@ function Navbar({ sidebarOpen, setSidebarOpen }) {
 
           <Link to="/" className="navbar-logo">
             <div className="logo-icon">💰</div>
-            <span>Cost Intelligence</span>
+            <span>Cost Intelligence Engine</span>
           </Link>
         </div>
 
