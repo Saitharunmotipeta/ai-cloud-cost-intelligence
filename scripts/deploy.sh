@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 set -e
 
-source .env
-
 # ==========================================
 # deploy.sh
 #
@@ -24,6 +22,8 @@ source .env
 # ------------------------------------------
 
 cd "$(dirname "$0")/.."
+
+source .env
 
 echo "=========================================="
 echo "🚀 Starting AWS deployment"
@@ -60,6 +60,7 @@ aws cloudfront create-invalidation \
 # ------------------------------------------
 
 echo "🖥️ Connecting to EC2 and updating services..."
+echo $REMOTE_PROJECT_DIR
 
 ssh -i "$SSH_KEY_PATH" "$EC2_HOST" << EOF
 set -e
@@ -67,8 +68,13 @@ set -e
 echo "📂 Switching to project directory..."
 cd $REMOTE_PROJECT_DIR
 
+
+
 echo "⬇️ Pulling latest code..."
 git pull origin main
+
+echo "🐳 Switching to Docker directory..."
+cd infrastructure/docker
 
 echo "🐳 Rebuilding and restarting containers..."
 docker-compose up -d --build
