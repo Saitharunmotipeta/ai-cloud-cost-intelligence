@@ -1,5 +1,6 @@
 __pycache__/
 *.pyc
+.env.local
 .env
 .venv/
 .idea/
@@ -7,3 +8,4 @@ __pycache__/
 plan.txt
 raw/
 scripts/cost-intelligence-key.pem
+documentation.txt
