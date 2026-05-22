@@ -1,0 +1,25 @@
+version: "3.9"
+
+services:
+
+  redis:
+    image: redis:7
+    container_name: redis
+    ports:
+      - "6379:6379"
+
+  ingestion-service:
+    build:
+      context: ../../
+      dockerfile: services/ingestion-service/Dockerfile
+
+    container_name: ingestion-service
+
+    ports:
+      - "8001:8000"
+
+    env_file:
+      - ../../.env.local
+
+    depends_on:
+      - redis
