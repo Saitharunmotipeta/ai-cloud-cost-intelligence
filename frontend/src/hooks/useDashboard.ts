@@ -42,7 +42,7 @@ export const useDashboard = ({
   const commonOptions = {
     errorPolicy: "all" as const,
     fetchPolicy: "network-only" as const,
-    pollInterval: 60000, // 🔥 keep 1 min or increase later
+    pollInterval: 1500000, // 🔥 keep 1 min or increase later
     skip: shouldSkip,    // 🔥 CRITICAL FIX
   };
 
