@@ -8,14 +8,18 @@ function Insights() {
 
   const accountId = localStorage.getItem("account_id");
 
-  // ✅ Filters (state only, no heavy filtering here)
+  // ✅ Filters
   const [filters, setFilters] = useState({
     severity: "ALL",
     service: "",
     date: ""
   });
 
-  // 🔥 PASS filters + accountId to hook
+  // 🔥 PAGINATION
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 7;
+
+  // 🔥 INSIGHTS
   const {
     insights = [],
     loading,
@@ -28,11 +32,12 @@ function Insights() {
     limit: 50
   });
 
-  // 🔥 Track new insights (unchanged logic)
+  // 🔥 Track new insights
   const [prevInsights, setPrevInsights] = useState([]);
   const [newIds, setNewIds] = useState(new Set());
 
   useEffect(() => {
+
     if (!insights.length) return;
 
     if (prevInsights.length === 0) {
@@ -41,23 +46,29 @@ function Insights() {
     }
 
     const prevIds = new Set(prevInsights.map(i => i.id));
+
     const currentIds = insights.map(i => i.id);
 
-    const newOnes = currentIds.filter(id => !prevIds.has(id));
+    const newOnes = currentIds.filter(
+      id => !prevIds.has(id)
+    );
 
     setNewIds(new Set(newOnes));
+
     setPrevInsights(insights);
 
   }, [insights]);
 
-  // ✅ Services extraction (safe)
+  // ✅ Services extraction
   const services = [
-    ...new Set(insights.map(i => i?.service).filter(Boolean))
+    ...new Set(
+      insights
+        .map(i => i?.service)
+        .filter(Boolean)
+    )
   ];
 
-  // ❌ REMOVE frontend filtering → backend already filtered
-
-  // 🔥 Sorting only (allowed)
+  // 🔥 SORTING
   const priority = {
     CRITICAL: 1,
     HIGH: 2,
@@ -66,12 +77,29 @@ function Insights() {
   };
 
   const sortedInsights = [...insights].sort(
-    (a, b) => (priority[a.severity] || 5) - (priority[b.severity] || 5)
+    (a, b) =>
+      (priority[a.severity] || 5)
+      - (priority[b.severity] || 5)
+  );
+
+  // 🔥 PAGINATION LOGIC
+  const startIndex =
+    (currentPage - 1) * ITEMS_PER_PAGE;
+
+  const paginatedInsights =
+    sortedInsights.slice(
+      startIndex,
+      startIndex + ITEMS_PER_PAGE
+    );
+
+  const totalPages = Math.ceil(
+    sortedInsights.length / ITEMS_PER_PAGE
   );
 
   return (
     <div className="insights">
-      <h1>Cost Insights</h1>
+
+      {/* <h1>Cost Insights</h1> */}
 
       {error && (
         <div style={{ color: "orange" }}>
@@ -81,20 +109,74 @@ function Insights() {
 
       <FilterBar
         filters={filters}
-        setFilters={setFilters}
+        setFilters={(newFilters) => {
+          setFilters(newFilters);
+          setCurrentPage(1);
+        }}
         services={services}
       />
 
       {isEmpty && !loading ? (
+
         <div>No insights available</div>
+
       ) : (
-        <InsightTable
-          insights={sortedInsights}
-          loading={loading}
-          error={error}
-          newIds={newIds}
-        />
+
+        <>
+          <InsightTable
+            insights={paginatedInsights}
+            loading={loading}
+            error={error}
+            newIds={newIds}
+          />
+
+          {/* 🔥 PAGINATION */}
+          {totalPages > 1 && (
+            <div className="pagination">
+
+              <button
+                disabled={currentPage === 1}
+                onClick={() =>
+                  setCurrentPage(currentPage - 1)
+                }
+              >
+                Prev
+              </button>
+
+              {Array.from(
+                { length: totalPages },
+                (_, index) => (
+                  <button
+                    key={index + 1}
+                    className={
+                      currentPage === index + 1
+                        ? "active-page"
+                        : ""
+                    }
+                    onClick={() =>
+                      setCurrentPage(index + 1)
+                    }
+                  >
+                    {index + 1}
+                  </button>
+                )
+              )}
+
+              <button
+                disabled={currentPage === totalPages}
+                onClick={() =>
+                  setCurrentPage(currentPage + 1)
+                }
+              >
+                Next
+              </button>
+
+            </div>
+          )}
+
+        </>
       )}
+
     </div>
   )
 }

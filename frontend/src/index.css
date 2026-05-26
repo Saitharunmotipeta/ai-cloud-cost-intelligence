@@ -1387,3 +1387,43 @@ body {
   }
 
 }
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+
+  margin-top: 24px;
+}
+
+.pagination button {
+  background: rgba(255,255,255,0.05);
+
+  border: 1px solid rgba(255,255,255,0.08);
+
+  color: white;
+
+  padding: 10px 16px;
+
+  border-radius: 10px;
+
+  cursor: pointer;
+
+  transition: 0.2s ease;
+}
+
+.pagination button:hover {
+  background: rgba(120, 119, 255, 0.2);
+}
+
+.pagination button.active-page {
+  background: #5b5cff;
+
+  border-color: #7c7dff;
+}
+
+.pagination button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

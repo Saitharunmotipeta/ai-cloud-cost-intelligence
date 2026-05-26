@@ -13,7 +13,11 @@ function Anomalies() {
   const [selectedSeverity, setSelectedSeverity] = useState("ALL");
   const [selectedDate, setSelectedDate] = useState("");
 
-  // 🔥 ONLY light filtering (backend already filtered)
+  // 🔥 PAGINATION
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 7;
+
+  // 🔥 FILTERING
   const filteredAnomalies = anomalies.filter((a) => {
 
     const matchSeverity =
@@ -25,15 +29,32 @@ function Anomalies() {
     return matchSeverity && matchDate;
   });
 
+  // 🔥 PAGINATION LOGIC
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+
+  const paginatedAnomalies = filteredAnomalies.slice(
+    startIndex,
+    startIndex + ITEMS_PER_PAGE
+  );
+
+  const totalPages = Math.ceil(
+    filteredAnomalies.length / ITEMS_PER_PAGE
+  );
+
   return (
     <div className="anomalies">
-      <h1>Cost Anomalies</h1>
+
+      {/* <h1>Cost Anomalies</h1> */}
 
       {/* 🔥 FILTERS */}
       <div className="filters">
+
         <select
           value={selectedSeverity}
-          onChange={(e) => setSelectedSeverity(e.target.value)}
+          onChange={(e) => {
+            setSelectedSeverity(e.target.value);
+            setCurrentPage(1);
+          }}
         >
           <option value="ALL">All Severities</option>
           <option value="CRITICAL">Critical</option>
@@ -45,15 +66,55 @@ function Anomalies() {
         <input
           type="date"
           value={selectedDate}
-          onChange={(e) => setSelectedDate(e.target.value)}
+          onChange={(e) => {
+            setSelectedDate(e.target.value);
+            setCurrentPage(1);
+          }}
         />
+
       </div>
 
       <AnomalyTable
-        anomalies={filteredAnomalies}
+        anomalies={paginatedAnomalies}
         loading={loading}
         error={error}
       />
+
+      {/* 🔥 PAGINATION */}
+      {totalPages > 1 && (
+        <div className="pagination">
+
+          <button
+            disabled={currentPage === 1}
+            onClick={() => setCurrentPage(currentPage - 1)}
+          >
+            Prev
+          </button>
+
+          {Array.from({ length: totalPages }, (_, index) => (
+            <button
+              key={index + 1}
+              className={
+                currentPage === index + 1
+                  ? "active-page"
+                  : ""
+              }
+              onClick={() => setCurrentPage(index + 1)}
+            >
+              {index + 1}
+            </button>
+          ))}
+
+          <button
+            disabled={currentPage === totalPages}
+            onClick={() => setCurrentPage(currentPage + 1)}
+          >
+            Next
+          </button>
+
+        </div>
+      )}
+
     </div>
   );
 }
