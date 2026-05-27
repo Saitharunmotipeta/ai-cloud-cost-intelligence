@@ -1,67 +1,118 @@
-import React from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import React from "react";
 
-function Navbar({ sidebarOpen, setSidebarOpen }) {
-  const location = useLocation()
+import {
+  LayoutDashboard,
+  BrainCircuit,
+  TriangleAlert,
+  Search,
+  CalendarDays,
+  UserCircle2,
+  Cpu
+} from "lucide-react";
 
-  const isActive = (path) => location.pathname === path
+import {
+  Link,
+  useLocation
+} from "react-router-dom";
+
+function Navbar() {
+
+  const location = useLocation();
+
+  const isActive = (path) =>
+    location.pathname === path;
 
   return (
     <nav className="navbar">
-      <div className="navbar-container">
-        <div className="navbar-left">
-          <button
-            className="sidebar-toggle"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            aria-label="Toggle sidebar"
-          >
-            {sidebarOpen ? '✕' : '☰'}
-          </button>
 
-          <Link to="/" className="navbar-logo">
-            <div className="logo-icon">💰</div>
-            <span>Cost Intelligence Engine</span>
-          </Link>
-        </div>
+      {/* LEFT */}
+      <div className="navbar-left">
 
-        <div className="navbar-center">
-          <Link
-            to="/"
-            className={`nav-link ${isActive('/') ? 'active' : ''}`}
-          >
-            Dashboard
-          </Link>
+        <Link to="/" className="navbar-logo">
 
-          <Link
-            to="/insights"
-            className={`nav-link ${isActive('/insights') ? 'active' : ''}`}
-          >
-            Insights
-          </Link>
-
-          <Link
-            to="/anomalies"
-            className={`nav-link ${isActive('/anomalies') ? 'active' : ''}`}
-          >
-            Anomalies
-          </Link>
-
-          <Link
-            to="/about"
-            className={`nav-link ${isActive('/about') ? 'active' : ''}`}
-          >
-            About Project
-          </Link>
-        </div>
-
-        <div className="navbar-right">
-          <div className="user-menu">
-            <span className="user-icon">👤</span>
+          <div className="logo-icon">
+            <Cpu size={22} />
           </div>
-        </div>
+
+          <div className="logo-text">
+            <h2>Cost Intelligence</h2>
+            <span>AI Cloud Monitoring</span>
+          </div>
+
+        </Link>
+
       </div>
+
+      {/* CENTER */}
+      <div className="navbar-center">
+
+        <Link
+          to="/"
+          className={`nav-link ${isActive("/") ? "active" : ""}`}
+        >
+          {/* <LayoutDashboard size={18} /> */}
+          Dashboard
+        </Link>
+
+        <Link
+          to="/insights"
+          className={`nav-link ${isActive("/insights") ? "active" : ""}`}
+        >
+          {/* <BrainCircuit size={18} /> */}
+          Insights
+        </Link>
+
+        <Link
+          to="/anomalies"
+          className={`nav-link ${isActive("/anomalies") ? "active" : ""}`}
+        >
+          {/* <TriangleAlert size={18} /> */}
+          Anomalies
+        </Link>
+
+      </div>
+
+      {/* RIGHT */}
+      <div className="navbar-right">
+
+        <div className="search-box">
+
+          <Search
+            size={18}
+            className="search-icon"
+          />
+
+          <input
+            type="text"
+            placeholder="Search services, insights..."
+          />
+
+        </div>
+
+        <div className="time-filter-wrapper">
+
+          <CalendarDays
+            size={18}
+            className="calendar-icon"
+          />
+
+          <select className="time-select">
+            <option>Last 7 Days</option>
+            <option>Last 30 Days</option>
+            <option>Last 90 Days</option>
+            <option>Last Year</option>
+          </select>
+
+        </div>
+
+        <div className="profile-avatar">
+          <UserCircle2 size={22} />
+        </div>
+
+      </div>
+
     </nav>
-  )
+  );
 }
 
-export default Navbar
+export default Navbar;

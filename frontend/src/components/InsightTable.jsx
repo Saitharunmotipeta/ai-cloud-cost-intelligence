@@ -1,113 +1,240 @@
-import React from 'react'
-import SkeletonTable from './skeletons/SkeletonTable'
-import { formatDate } from '../utils/formatDate'
+import React, { useState } from "react";
 
-function InsightTable({ insights = [], loading = false, error = null, newIds = new Set() }) {
+import {
+  ShieldAlert,
+  Sparkles
+} from "lucide-react";
 
-  const getSeverityColor = (severity) => {
-    const colors = {
-      CRITICAL: '#e74c3c',
-      HIGH: '#e67e22',
-      MEDIUM: '#f39c12',
-      LOW: '#27ae60'
+import SkeletonTable from "./skeletons/SkeletonTable";
+
+function InsightTable({
+  insights = [],
+  loading = false,
+  error = null,
+  newIds = new Set()
+}) {
+
+  const ITEMS_PER_PAGE = 3;
+
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const totalPages = Math.ceil(
+    insights.length / ITEMS_PER_PAGE
+  );
+
+  const startIndex =
+    (currentPage - 1) * ITEMS_PER_PAGE;
+
+  const currentInsights =
+    insights.slice(
+      startIndex,
+      startIndex + ITEMS_PER_PAGE
+    );
+
+  const getSeverityClass = (severity) => {
+
+    switch (severity) {
+
+      case "CRITICAL":
+        return "severity-critical";
+
+      case "HIGH":
+        return "severity-high";
+
+      case "MEDIUM":
+        return "severity-medium";
+
+      case "LOW":
+        return "severity-low";
+
+      default:
+        return "";
     }
-    return colors[severity] || '#95a5a6'
-  }
 
-  const getImpactColor = (impact) => {
-    const colors = {
-      high: '#e74c3c',
-      medium: '#f39c12',
-      low: '#27ae60'
-    }
-    return colors[impact?.toLowerCase()] || '#95a5a6'
-  }
+  };
 
-  if (loading) return <SkeletonTable rows={5} />
+  if (loading) {
+    return <SkeletonTable rows={3} />;
+  }
 
   if (error && insights.length === 0) {
-    return <div className="error-text">Failed to load insights</div>
+    return (
+      <div className="table-error">
+        Failed to load insights
+      </div>
+    );
   }
 
   if (!insights.length) {
-    return <div className="empty-state">No insights available</div>
+    return (
+      <div className="empty-state">
+        No insights available
+      </div>
+    );
   }
 
   return (
-    <div className="table-wrapper">
 
-      {error && (
-        <div className="warning-text">
-          ⚠️ Some insights may be missing
-        </div>
-      )}
+    <div className="modern-table-wrapper">
 
-      <table className="custom-table">
-        <thead>
-          <tr>
-            <th>Service</th>
-            <th>Severity</th>
-            <th>Type</th>
-            <th>Impact</th>
-            <th>Explanation</th>
-            <th>Root Cause</th>
-            <th>Action</th>
-            <th>Confidence</th>
-            <th>Generated</th>
-          </tr>
-        </thead>
+      <div className="table-header">
 
-        <tbody>
-          {insights.map((insight, index) => (
-            <tr key={insight.id || `${insight.service}-${index}`} className={newIds.has(insight.id) ? "new-row" : ""}>
-                  
-              <td>{insight.service}</td>
+        <h2>
+          Latest AI Insights
+        </h2>
 
-              <td>
-                <span
-                  className="badge"
-                  style={{ backgroundColor: getSeverityColor(insight.severity) }}
-                >
-                  {insight.severity}
-                </span>
-              </td>
+        <a
+          href="/insights"
+          className="view-all-link"
+        >
+          View All →
+        </a>
 
-              <td>{insight.anomalyType || 'unknown'}</td>
+      </div>
 
-              <td>
-                <span
-                  className="badge"
-                  style={{ backgroundColor: getImpactColor(insight.impact) }}
-                >
-                  {insight.impact}
-                </span>
-              </td>
+      <div className="table-scroll">
 
-              <td className="truncate">
-                {newIds.has(insight.id) && (
-                  <span className="new-badge">NEW</span>
-                )}
-                {insight.explanation || insight.message}
-              </td>
+        <table className="modern-table">
 
-              <td className="truncate">
-                {insight.rootCause || 'N/A'}
-              </td>
+          <thead>
 
-              <td className="truncate">
-                {insight.action || insight.recommendation}
-              </td>
-
-              <td>{insight.confidence}</td>
-
-              <td>{formatDate(insight.generated_at)}</td>
-
+            <tr>
+              <th>Service</th>
+              <th>Severity</th>
+              <th>Explanation</th>
+              <th>Recommendation</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+
+          </thead>
+
+          <tbody>
+
+            {currentInsights.map((insight, index) => (
+
+              <tr
+                key={
+                  insight.id ||
+                  `${insight.service}-${index}`
+                }
+              >
+
+                {/* SERVICE */}
+
+                <td>
+
+                  <div className="service-cell">
+
+                    <div className="service-icon">
+                      <Sparkles size={15} />
+                    </div>
+
+                    <span>
+                      {insight.service}
+                    </span>
+
+                  </div>
+
+                </td>
+
+                {/* SEVERITY */}
+
+                <td>
+
+                  <div
+                    className={`severity-pill ${getSeverityClass(insight.severity)}`}
+                  >
+
+                    <ShieldAlert size={13} />
+
+                    {insight.severity}
+
+                  </div>
+
+                </td>
+
+                {/* EXPLANATION */}
+
+                <td className="table-text">
+
+                  {newIds.has(insight.id) && (
+                    <span className="new-badge">
+                      NEW
+                    </span>
+                  )}
+
+                  {
+                    insight.explanation ||
+                    insight.message
+                  }
+
+                </td>
+
+                {/* ACTION */}
+
+                <td className="table-text">
+
+                  {
+                    insight.action ||
+                    insight.recommendation
+                  }
+
+                </td>
+
+              </tr>
+
+            ))}
+
+          </tbody>
+
+        </table>
+
+      </div>
+
+      {/* PAGINATION */}
+
+      <div className="pagination">
+
+        <button
+          disabled={currentPage === 1}
+          onClick={() =>
+            setCurrentPage(prev => prev - 1)
+          }
+        >
+          Prev
+        </button>
+
+        {[...Array(totalPages)].map((_, index) => (
+
+          <button
+            key={index}
+            className={
+              currentPage === index + 1
+                ? "active-page"
+                : ""
+            }
+            onClick={() =>
+              setCurrentPage(index + 1)
+            }
+          >
+            {index + 1}
+          </button>
+
+        ))}
+
+        <button
+          disabled={currentPage === totalPages}
+          onClick={() =>
+            setCurrentPage(prev => prev + 1)
+          }
+        >
+          Next
+        </button>
+
+      </div>
+
     </div>
-  )
+
+  );
 }
 
-export default InsightTable
+export default InsightTable;

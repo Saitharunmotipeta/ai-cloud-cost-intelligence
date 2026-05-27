@@ -1,40 +1,84 @@
-import React from 'react'
-import SkeletonCard from './skeletons/SkeletonCard'
+import React from "react";
+
+import {
+  AlertTriangle,
+  BrainCircuit,
+  Activity,
+  ServerCrash
+} from "lucide-react";
+
+import SkeletonCard from "./skeletons/SkeletonCard";
 
 function StatCard({
   title,
   value,
-  color = 'blue',
+  color = "blue",
   loading = false
 }) {
 
-  const colorClasses = {
-    blue: 'stat-card-blue',
-    red: 'stat-card-red',
-    green: 'stat-card-green',
-    yellow: 'stat-card-yellow'
-  }
+  const cardConfig = {
 
-  // ✅ Keep skeleton loading
+    blue: {
+      className: "stat-card-blue",
+      icon: <BrainCircuit size={22} />
+    },
+
+    red: {
+      className: "stat-card-red",
+      icon: <AlertTriangle size={22} />
+    },
+
+    green: {
+      className: "stat-card-green",
+      icon: <Activity size={22} />
+    },
+
+    yellow: {
+      className: "stat-card-yellow",
+      icon: <ServerCrash size={22} />
+    }
+
+  };
+
   if (loading) {
-    return <SkeletonCard />
+    return <SkeletonCard />;
   }
 
   return (
 
-    <div className={`modern-stat-card ${colorClasses[color]}`}>
+    <div className={`modern-stat-card ${cardConfig[color].className}`}>
 
-      <div className="card-top">
-        <span>{title}</span>
+      {/* GLOW */}
+      <div className="card-glow"></div>
+
+      {/* TOP */}
+      <div className="card-header">
+
+        <div className="stat-icon">
+          {cardConfig[color].icon}
+        </div>
+
+        <span className="stat-title">
+          {title}
+        </span>
+
       </div>
 
+      {/* VALUE */}
       <div className="card-value">
         {value ?? 0}
       </div>
 
+      {/* FOOTER */}
+      <div className="card-footer">
+        <span className="trend-positive">
+          ↑ Live Monitoring
+        </span>
+      </div>
+
     </div>
 
-  )
+  );
 }
 
-export default StatCard
+export default StatCard;

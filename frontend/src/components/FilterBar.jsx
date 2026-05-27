@@ -1,37 +1,57 @@
 import React from "react";
 
-export default function FilterBar({ filters, setFilters, services }) {
+import { Filter } from "lucide-react";
+
+export default function FilterBar({
+  filters,
+  setFilters
+}) {
 
   return (
-    <div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
 
-      {/* Severity */}
-      <select
-        value={filters.severity}
-        onChange={(e) =>
-          setFilters({ ...filters, severity: e.target.value })
-        }
-      >
-        <option value="">All Severity</option>
-        <option value="CRITICAL">Critical</option>
-        <option value="HIGH">High</option>
-        <option value="MEDIUM">Medium</option>
-        <option value="LOW">Low</option>
-      </select>
+    <div className="modern-filter-bar">
 
-      {/* Service */}
-      <select
-        value={filters.service}
-        onChange={(e) =>
-          setFilters({ ...filters, service: e.target.value })
-        }
-      >
-        <option value="">All Services</option>
-        {services.map((s) => (
-          <option key={s} value={s}>{s}</option>
-        ))}
-      </select>
+      <div className="filter-group">
+
+        <div className="filter-icon">
+          <Filter size={16} />
+        </div>
+
+        <select
+          className="modern-select"
+          value={filters.severity}
+          onChange={(e) =>
+            setFilters({
+              ...filters,
+              severity: e.target.value
+            })
+          }
+        >
+          <option value="ALL">
+            All Severity
+          </option>
+
+          <option value="CRITICAL">
+            Critical
+          </option>
+
+          <option value="HIGH">
+            High
+          </option>
+
+          <option value="MEDIUM">
+            Medium
+          </option>
+
+          <option value="LOW">
+            Low
+          </option>
+
+        </select>
+
+      </div>
 
     </div>
+
   );
 }
