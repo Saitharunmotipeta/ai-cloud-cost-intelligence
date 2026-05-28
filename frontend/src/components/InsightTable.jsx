@@ -11,24 +11,23 @@ function InsightTable({
   insights = [],
   loading = false,
   error = null,
-  newIds = new Set()
+  newIds = new Set(),
+  itemsPerPage = 3
 }) {
-
-  const ITEMS_PER_PAGE = 3;
 
   const [currentPage, setCurrentPage] = useState(1);
 
   const totalPages = Math.ceil(
-    insights.length / ITEMS_PER_PAGE
+    insights.length / itemsPerPage
   );
 
   const startIndex =
-    (currentPage - 1) * ITEMS_PER_PAGE;
+    (currentPage - 1) * itemsPerPage;
 
   const currentInsights =
     insights.slice(
       startIndex,
-      startIndex + ITEMS_PER_PAGE
+      startIndex + itemsPerPage
     );
 
   const getSeverityClass = (severity) => {
@@ -54,7 +53,11 @@ function InsightTable({
   };
 
   if (loading) {
-    return <SkeletonTable rows={3} />;
+    return (
+      <SkeletonTable
+        rows={itemsPerPage}
+      />
+    );
   }
 
   if (error && insights.length === 0) {
@@ -192,45 +195,51 @@ function InsightTable({
 
       {/* PAGINATION */}
 
-      <div className="pagination">
+      {totalPages > 1 && (
 
-        <button
-          disabled={currentPage === 1}
-          onClick={() =>
-            setCurrentPage(prev => prev - 1)
-          }
-        >
-          Prev
-        </button>
-
-        {[...Array(totalPages)].map((_, index) => (
+        <div className="pagination">
 
           <button
-            key={index}
-            className={
-              currentPage === index + 1
-                ? "active-page"
-                : ""
-            }
+            disabled={currentPage === 1}
             onClick={() =>
-              setCurrentPage(index + 1)
+              setCurrentPage(prev => prev - 1)
             }
           >
-            {index + 1}
+            Prev
           </button>
 
-        ))}
+          {[...Array(totalPages)].map((_, index) => (
 
-        <button
-          disabled={currentPage === totalPages}
-          onClick={() =>
-            setCurrentPage(prev => prev + 1)
-          }
-        >
-          Next
-        </button>
+            <button
+              key={index}
+              className={
+                currentPage === index + 1
+                  ? "active-page"
+                  : ""
+              }
+              onClick={() =>
+                setCurrentPage(index + 1)
+              }
+            >
+              {index + 1}
+            </button>
 
-      </div>
+          ))}
+
+          <button
+            disabled={
+              currentPage === totalPages
+            }
+            onClick={() =>
+              setCurrentPage(prev => prev + 1)
+            }
+          >
+            Next
+          </button>
+
+        </div>
+
+      )}
 
     </div>
 

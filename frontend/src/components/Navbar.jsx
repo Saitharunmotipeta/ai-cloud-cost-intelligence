@@ -1,9 +1,6 @@
 import React from "react";
 
 import {
-  LayoutDashboard,
-  BrainCircuit,
-  TriangleAlert,
   Search,
   CalendarDays,
   UserCircle2,
@@ -23,20 +20,32 @@ function Navbar() {
     location.pathname === path;
 
   return (
+
     <nav className="navbar">
 
       {/* LEFT */}
+
       <div className="navbar-left">
 
-        <Link to="/" className="navbar-logo">
+        <Link
+          to="/"
+          className="navbar-logo"
+        >
 
           <div className="logo-icon">
             <Cpu size={22} />
           </div>
 
           <div className="logo-text">
-            <h2>Cost Intelligence</h2>
-            <span>AI Cloud Monitoring</span>
+
+            <h2>
+              Cost Intelligence
+            </h2>
+
+            <span>
+              AI Cloud Monitoring
+            </span>
+
           </div>
 
         </Link>
@@ -44,13 +53,13 @@ function Navbar() {
       </div>
 
       {/* CENTER */}
+
       <div className="navbar-center">
 
         <Link
           to="/"
           className={`nav-link ${isActive("/") ? "active" : ""}`}
         >
-          {/* <LayoutDashboard size={18} /> */}
           Dashboard
         </Link>
 
@@ -58,7 +67,6 @@ function Navbar() {
           to="/insights"
           className={`nav-link ${isActive("/insights") ? "active" : ""}`}
         >
-          {/* <BrainCircuit size={18} /> */}
           Insights
         </Link>
 
@@ -66,14 +74,30 @@ function Navbar() {
           to="/anomalies"
           className={`nav-link ${isActive("/anomalies") ? "active" : ""}`}
         >
-          {/* <TriangleAlert size={18} /> */}
           Anomalies
+        </Link>
+
+        <Link
+          to="/about"
+          className={`nav-link ${isActive("/about") ? "active" : ""}`}
+        >
+          About Project
+        </Link>
+
+        <Link
+          to="/architecture"
+          className={`nav-link ${isActive("/architecture") ? "active" : ""}`}
+        >
+          Architecture
         </Link>
 
       </div>
 
       {/* RIGHT */}
+
       <div className="navbar-right">
+
+        {/* SEARCH */}
 
         <div className="search-box">
 
@@ -89,6 +113,8 @@ function Navbar() {
 
         </div>
 
+        {/* TIME FILTER */}
+
         <div className="time-filter-wrapper">
 
           <CalendarDays
@@ -97,13 +123,28 @@ function Navbar() {
           />
 
           <select className="time-select">
-            <option>Last 7 Days</option>
-            <option>Last 30 Days</option>
-            <option>Last 90 Days</option>
-            <option>Last Year</option>
+
+            <option>
+              Last 7 Days
+            </option>
+
+            <option>
+              Last 30 Days
+            </option>
+
+            <option>
+              Last 90 Days
+            </option>
+
+            <option>
+              Last Year
+            </option>
+
           </select>
 
         </div>
+
+        {/* PROFILE */}
 
         <div className="profile-avatar">
           <UserCircle2 size={22} />
@@ -112,6 +153,7 @@ function Navbar() {
       </div>
 
     </nav>
+
   );
 }
 

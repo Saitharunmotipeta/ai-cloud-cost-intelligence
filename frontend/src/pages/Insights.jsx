@@ -124,55 +124,15 @@ function Insights() {
 
         <>
           <InsightTable
-            insights={paginatedInsights}
+            insights={sortedInsights}
             loading={loading}
             error={error}
             newIds={newIds}
+            itemsPerPage={7}
+            variant="insights"
           />
 
-          {/* 🔥 PAGINATION */}
-          {totalPages > 1 && (
-            <div className="pagination">
 
-              <button
-                disabled={currentPage === 1}
-                onClick={() =>
-                  setCurrentPage(currentPage - 1)
-                }
-              >
-                Prev
-              </button>
-
-              {Array.from(
-                { length: totalPages },
-                (_, index) => (
-                  <button
-                    key={index + 1}
-                    className={
-                      currentPage === index + 1
-                        ? "active-page"
-                        : ""
-                    }
-                    onClick={() =>
-                      setCurrentPage(index + 1)
-                    }
-                  >
-                    {index + 1}
-                  </button>
-                )
-              )}
-
-              <button
-                disabled={currentPage === totalPages}
-                onClick={() =>
-                  setCurrentPage(currentPage + 1)
-                }
-              >
-                Next
-              </button>
-
-            </div>
-          )}
 
         </>
       )}

@@ -1,177 +1,279 @@
-import React from 'react';
+import React from "react";
 
-const principles = [
+import {
+  BrainCircuit,
+  ShieldAlert,
+  TrendingUp,
+  Activity,
+  ArrowRight
+} from "lucide-react";
+
+const problems = [
+
   {
-    title: 'Event-Driven Architecture',
-    icon: '⚡',
+    title: "Rising Cloud Costs",
+    icon: <TrendingUp size={28} />,
     description:
-      'All services communicate asynchronously through events for loose coupling and scalability.',
+      "Modern cloud infrastructure scales rapidly, making it difficult to track unnecessary spending across services."
   },
+
   {
-    title: 'Microservices',
-    icon: '🧩',
+    title: "Hidden Usage Spikes",
+    icon: <Activity size={28} />,
     description:
-      'Each service has a single responsibility and can be deployed independently.',
+      "Unexpected traffic surges and inefficient workloads can silently increase operational expenses."
   },
+
   {
-    title: 'AI Intelligence Layer',
-    icon: '🧠',
+    title: "Manual Monitoring",
+    icon: <ShieldAlert size={28} />,
     description:
-      'LangChain, LangGraph, and RAG generate context-aware optimization insights.',
+      "Traditional monitoring requires teams to manually investigate logs, metrics, and billing anomalies."
   },
+
   {
-    title: 'Cloud-Native Design',
-    icon: '☁️',
+    title: "Delayed Optimization",
+    icon: <BrainCircuit size={28} />,
     description:
-      'Built for containers, serverless computing, and production-grade AWS deployment.',
-  },
+      "Without intelligent automation, optimization opportunities are often discovered too late."
+  }
+
 ];
 
-const services = [
-  {
-    name: 'Ingestion Service',
-    description: 'Collects and normalizes cloud cost and usage data.',
-  },
-  {
-    name: 'Analytics Service',
-    description: 'Detects anomalies using machine learning models.',
-  },
-  {
-    name: 'Storage Service',
-    description: 'Stores anomalies, insights, and aggregated metrics.',
-  },
-  {
-    name: 'GraphQL Gateway',
-    description: 'Unified API endpoint for the React dashboard.',
-  },
-  {
-    name: 'Intelligence Service',
-    description:
-      'Uses LangChain, LangGraph, and RAG to generate recommendations.',
-  },
+const workflow = [
+  "Collect Cloud Metrics",
+  "Detect Spending Anomalies",
+  "Analyze Usage Patterns",
+  "Generate AI Insights",
+  "Recommend Optimizations"
 ];
 
-const aiStack = [
-  'LangChain',
-  'LangGraph',
-  'RAG',
-  'Prompt Engineering',
-  'Historical Retrieval',
-  'Optimization Recommendations',
-];
+export default function About() {
 
-const cloudServices = [
-  'CloudFront',
-  'S3',
-  'API Gateway',
-  'EC2',
-  'ECR',
-  'Lambda',
-  'SQS',
-  'IAM',
-  'CloudWatch',
-  'Supabase / PostgreSQL',
-];
-
-const phases = [
-  'Phase 1 – Event Backbone',
-  'Phase 2 – Anomaly Detection',
-  'Phase 3 – AI Intelligence Layer',
-  'Phase 4 – Storage & GraphQL',
-  'Phase 5 – Frontend Dashboard',
-  'Phase 6 – AWS Deployment',
-  'Phase 7 – Production Polish',
-];
-
-export default function AboutProject() {
   return (
-    <div className="page-container">
-      <section className="about-hero">
-        <p className="about-badge">Architecture Showcase</p>
-        <h1 className="about-title">AI Cloud Cost Intelligence Engine</h1>
-        <p className="about-subtitle">
-          An end-to-end event-driven platform that detects cloud cost anomalies
-          and generates AI-powered optimization insights using machine learning,
-          LangChain, LangGraph, and RAG.
-        </p>
-      </section>
 
-      <section className="about-section">
-        <h2 className="section-title">Architecture Principles</h2>
-        <div className="card-grid four-columns">
-          {principles.map((item) => (
-            <div key={item.title} className="about-card">
-              <div className="about-card-icon">{item.icon}</div>
-              <h3>{item.title}</h3>
-              <p>{item.description}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+    <div className="about-page">
 
-      <section className="about-section">
-        <h2 className="section-title">Event Pipeline</h2>
-        <div className="pipeline-flow">
-          <span>Cost Data Ingested</span>
-          <span>→</span>
-          <span>Ready for Analysis</span>
-          <span>→</span>
-          <span>Anomaly Detected</span>
-          <span>→</span>
-          <span>Insight Generated</span>
-        </div>
-      </section>
+      {/* =========================
+          HERO
+      ========================= */}
 
-      <section className="about-section">
-        <h2 className="section-title">Microservices</h2>
-        <div className="card-grid three-columns">
-          {services.map((service) => (
-            <div key={service.name} className="about-card">
-              <h3>{service.name}</h3>
-              <p>{service.description}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+      <section className="about-main-hero">
 
-      <section className="about-section">
-        <h2 className="section-title">AI Intelligence Layer</h2>
-        <div className="about-highlight">
-          <p>
-            The intelligence engine combines retrieval and reasoning to explain
-            anomalies and generate optimization recommendations.
-          </p>
-          <div className="tag-container">
-            {aiStack.map((item) => (
-              <span key={item} className="tech-tag">
-                {item}
-              </span>
-            ))}
+        <div className="about-main-glow"></div>
+
+        <div className="about-main-content">
+
+          <div className="about-chip">
+            WHY THIS PLATFORM EXISTS
           </div>
+
+          <h1>
+            Intelligent cloud monitoring
+            for modern infrastructure
+          </h1>
+
+          <p>
+            AI Cloud Cost Intelligence Engine helps organizations
+            detect abnormal cloud spending, identify operational
+            inefficiencies, and generate intelligent optimization
+            recommendations before infrastructure costs escalate.
+          </p>
+
         </div>
+
       </section>
 
-      <section className="about-section">
-        <h2 className="section-title">AWS Deployment Services</h2>
-        <div className="tag-container">
-          {cloudServices.map((service) => (
-            <span key={service} className="tech-tag aws-tag">
-              {service}
-            </span>
-          ))}
-        </div>
-      </section>
+      {/* =========================
+          PROBLEM SECTION
+      ========================= */}
 
       <section className="about-section">
-        <h2 className="section-title">Project Evolution</h2>
-        <div className="roadmap-list">
-          {phases.map((phase) => (
-            <div key={phase} className="roadmap-item">
-              {phase}
+
+        <div className="section-heading">
+
+          <h2>
+            The problem with cloud cost management
+          </h2>
+
+          <p>
+            Cloud environments grow rapidly.
+            Monitoring them manually becomes increasingly difficult.
+          </p>
+
+        </div>
+
+        <div className="about-grid">
+
+          {problems.map((item) => (
+
+            <div
+              key={item.title}
+              className="about-problem-card"
+            >
+
+              <div className="problem-icon">
+                {item.icon}
+              </div>
+
+              <h3>
+                {item.title}
+              </h3>
+
+              <p>
+                {item.description}
+              </p>
+
             </div>
+
           ))}
+
         </div>
+
       </section>
+
+      {/* =========================
+          WORKFLOW
+      ========================= */}
+
+      <section className="about-section">
+
+        <div className="section-heading">
+
+          <h2>
+            How the platform works
+          </h2>
+
+          <p>
+            The system continuously monitors cloud activity
+            and transforms raw infrastructure data into
+            intelligent optimization insights.
+          </p>
+
+        </div>
+
+        <div className="workflow-container">
+
+          {workflow.map((step, index) => (
+
+            <React.Fragment key={step}>
+
+              <div className="workflow-step">
+
+                <div className="workflow-number">
+                  {index + 1}
+                </div>
+
+                <span>
+                  {step}
+                </span>
+
+              </div>
+
+              {index !== workflow.length - 1 && (
+                <ArrowRight
+                  className="workflow-arrow"
+                  size={20}
+                />
+              )}
+
+            </React.Fragment>
+
+          ))}
+
+        </div>
+
+      </section>
+
+      {/* =========================
+          REAL WORLD EXAMPLE
+      ========================= */}
+
+      <section className="about-section">
+
+        <div className="use-case-card">
+
+          <div className="use-case-badge">
+            REAL WORLD USE CASE
+          </div>
+
+          <h2>
+            Example scenario
+          </h2>
+
+          <p>
+            A company deploys a new product update.
+            Traffic unexpectedly spikes overnight,
+            causing cloud infrastructure costs to increase by 70%.
+          </p>
+
+          <p>
+            The AI engine immediately detects abnormal spending patterns,
+            identifies the affected services, analyzes the possible root cause,
+            and recommends optimization actions before the costs continue rising.
+          </p>
+
+        </div>
+
+      </section>
+
+      {/* =========================
+          WHY AI
+      ========================= */}
+
+      <section className="about-section">
+
+        <div className="why-ai-container">
+
+          <div className="why-ai-left">
+
+            <div className="about-chip">
+              AI INTELLIGENCE LAYER
+            </div>
+
+            <h2>
+              Why artificial intelligence matters
+            </h2>
+
+            <p>
+              Modern cloud environments generate massive amounts of
+              operational data every second.
+            </p>
+
+            <p>
+              AI helps detect hidden patterns,
+              identify cost anomalies faster,
+              and automate optimization workflows
+              that would otherwise require manual investigation.
+            </p>
+
+          </div>
+
+          <div className="why-ai-right">
+
+            <div className="ai-feature">
+              Real-time anomaly detection
+            </div>
+
+            <div className="ai-feature">
+              Intelligent cost optimization
+            </div>
+
+            <div className="ai-feature">
+              Predictive infrastructure monitoring
+            </div>
+
+            <div className="ai-feature">
+              Automated insight generation
+            </div>
+
+          </div>
+
+        </div>
+
+      </section>
+
     </div>
+
   );
 }
