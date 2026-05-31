@@ -1,25 +1,57 @@
-import React, { useState, useEffect } from 'react'
-import { useInsights } from "../hooks/useInsights"
+import React, {
+  useState,
+  useEffect,
+  useMemo
+} from "react";
 
-import InsightTable from '../components/InsightTable'
+import {
+  Search
+} from "lucide-react";
+
+import { useInsights } from "../hooks/useInsights";
+
+import InsightTable from "../components/InsightTable";
+
 import FilterBar from "../components/FilterBar";
 
 function Insights() {
 
-  const accountId = localStorage.getItem("account_id");
+  const accountId =
+    localStorage.getItem("account_id");
 
-  // ✅ Filters
+  /* =========================
+     FILTERS
+  ========================= */
+
   const [filters, setFilters] = useState({
     severity: "ALL",
     service: "",
     date: ""
   });
 
-  // 🔥 PAGINATION
-  const [currentPage, setCurrentPage] = useState(1);
+  /* =========================
+     SEARCH
+  ========================= */
+
+  const [searchQuery, setSearchQuery] =
+    useState("");
+
+  const [debouncedSearch, setDebouncedSearch] =
+    useState("");
+
+  /* =========================
+     PAGINATION
+  ========================= */
+
+  const [currentPage, setCurrentPage] =
+    useState(1);
+
   const ITEMS_PER_PAGE = 7;
 
-  // 🔥 INSIGHTS
+  /* =========================
+     INSIGHTS
+  ========================= */
+
   const {
     insights = [],
     loading,
@@ -28,30 +60,64 @@ function Insights() {
   } = useInsights({
     accountId,
     service: filters.service || null,
-    severity: filters.severity === "ALL" ? null : filters.severity,
+    severity:
+      filters.severity === "ALL"
+        ? null
+        : filters.severity,
     limit: 50
   });
 
-  // 🔥 Track new insights
-  const [prevInsights, setPrevInsights] = useState([]);
-  const [newIds, setNewIds] = useState(new Set());
+  /* =========================
+     DEBOUNCE
+  ========================= */
+
+  useEffect(() => {
+
+    const timer = setTimeout(() => {
+
+      setDebouncedSearch(
+        searchQuery
+      );
+
+    }, 400);
+
+    return () => clearTimeout(timer);
+
+  }, [searchQuery]);
+
+  /* =========================
+     NEW INSIGHTS TRACKING
+  ========================= */
+
+  const [prevInsights, setPrevInsights] =
+    useState([]);
+
+  const [newIds, setNewIds] =
+    useState(new Set());
 
   useEffect(() => {
 
     if (!insights.length) return;
 
     if (prevInsights.length === 0) {
+
       setPrevInsights(insights);
+
       return;
+
     }
 
-    const prevIds = new Set(prevInsights.map(i => i.id));
-
-    const currentIds = insights.map(i => i.id);
-
-    const newOnes = currentIds.filter(
-      id => !prevIds.has(id)
+    const prevIds = new Set(
+      prevInsights.map(i => i.id)
     );
+
+    const currentIds =
+      insights.map(i => i.id);
+
+    const newOnes =
+      currentIds.filter(
+        id => !prevIds.has(id)
+      );
 
     setNewIds(new Set(newOnes));
 
@@ -59,16 +125,24 @@ function Insights() {
 
   }, [insights]);
 
-  // ✅ Services extraction
+  /* =========================
+     SERVICES
+  ========================= */
+
   const services = [
+
     ...new Set(
       insights
         .map(i => i?.service)
         .filter(Boolean)
     )
+
   ];
 
-  // 🔥 SORTING
+  /* =========================
+     SORTING
+  ========================= */
+
   const priority = {
     CRITICAL: 1,
     HIGH: 2,
@@ -76,55 +150,237 @@ function Insights() {
     LOW: 4
   };
 
-  const sortedInsights = [...insights].sort(
-    (a, b) =>
-      (priority[a.severity] || 5)
-      - (priority[b.severity] || 5)
-  );
+  const sortedInsights =
+    [...insights].sort(
+      (a, b) =>
+        (priority[a.severity] || 5)
+        -
+        (priority[b.severity] || 5)
+    );
 
-  // 🔥 PAGINATION LOGIC
+  /* =========================
+     SEARCH FILTERING
+  ========================= */
+
+  const filteredInsights =
+    useMemo(() => {
+
+      if (!debouncedSearch.trim()) {
+        return sortedInsights;
+      }
+
+      const query =
+        debouncedSearch.toLowerCase();
+
+      return sortedInsights.filter(
+        (insight) => {
+
+          return (
+
+            insight.service
+              ?.toLowerCase()
+              .includes(query)
+
+            ||
+
+            insight.explanation
+              ?.toLowerCase()
+              .includes(query)
+
+            ||
+
+            insight.message
+              ?.toLowerCase()
+              .includes(query)
+
+            ||
+
+            insight.recommendation
+              ?.toLowerCase()
+              .includes(query)
+
+            ||
+
+            insight.action
+              ?.toLowerCase()
+              .includes(query)
+
+            ||
+
+            insight.rootCause
+              ?.toLowerCase()
+              .includes(query)
+
+            ||
+
+            insight.anomalyType
+              ?.toLowerCase()
+              .includes(query)
+
+          );
+
+        }
+      );
+
+    }, [
+      debouncedSearch,
+      sortedInsights
+    ]);
+
+  /* =========================
+     RESET PAGE
+  ========================= */
+
+  useEffect(() => {
+
+    setCurrentPage(1);
+
+  }, [
+    debouncedSearch,
+    filters
+  ]);
+
+  /* =========================
+     PAGINATION
+  ========================= */
+
   const startIndex =
-    (currentPage - 1) * ITEMS_PER_PAGE;
+    (currentPage - 1)
+    * ITEMS_PER_PAGE;
 
   const paginatedInsights =
-    sortedInsights.slice(
+    filteredInsights.slice(
       startIndex,
       startIndex + ITEMS_PER_PAGE
     );
 
   const totalPages = Math.ceil(
-    sortedInsights.length / ITEMS_PER_PAGE
+    filteredInsights.length
+    / ITEMS_PER_PAGE
   );
 
   return (
-    <div className="insights">
 
-      {/* <h1>Cost Insights</h1> */}
+    <div className="insights-page">
+
+      {/* =========================
+          TOP BAR
+      ========================= */}
+
+      <div className="insights-topbar">
+
+        {/* LEFT */}
+
+        <div className="insights-heading">
+
+          <h1>
+            Latest AI Insights
+          </h1>
+
+        </div>
+
+        {/* RIGHT */}
+
+        <div className="insights-controls">
+
+          {/* FILTER */}
+
+          <div className="severity-filter">
+
+            <select
+              value={filters.severity}
+              onChange={(e) => {
+
+                setFilters({
+                  ...filters,
+                  severity: e.target.value
+                });
+
+                setCurrentPage(1);
+
+              }}
+            >
+
+              <option value="ALL">
+                All Severity
+              </option>
+
+              <option value="CRITICAL">
+                Critical
+              </option>
+
+              <option value="HIGH">
+                High
+              </option>
+
+              <option value="MEDIUM">
+                Medium
+              </option>
+
+              <option value="LOW">
+                Low
+              </option>
+
+            </select>
+
+          </div>
+
+          {/* SEARCH */}
+
+          <div className="insights-search">
+
+            <Search
+              size={18}
+              className="insights-search-icon"
+            />
+
+            <input
+              type="text"
+              placeholder="Search insights, services..."
+              value={searchQuery}
+              onChange={(e) =>
+                setSearchQuery(
+                  e.target.value
+                )
+              }
+            />
+
+          </div>
+
+        </div>
+
+      </div>
+
+      {/* =========================
+          ERROR
+      ========================= */}
 
       {error && (
-        <div style={{ color: "orange" }}>
+
+        <div className="insight-warning">
+
           ⚠️ Some insights may be missing
+
         </div>
+
       )}
 
-      <FilterBar
-        filters={filters}
-        setFilters={(newFilters) => {
-          setFilters(newFilters);
-          setCurrentPage(1);
-        }}
-        services={services}
-      />
+      {/* =========================
+          TABLE
+      ========================= */}
 
       {isEmpty && !loading ? (
 
-        <div>No insights available</div>
+        <div className="empty-state">
+          No insights available
+        </div>
 
       ) : (
 
         <>
+
           <InsightTable
-            insights={sortedInsights}
+            insights={paginatedInsights}
             loading={loading}
             error={error}
             newIds={newIds}
@@ -132,13 +388,64 @@ function Insights() {
             variant="insights"
           />
 
+          {/* =========================
+              PAGINATION
+          ========================= */}
 
+          {totalPages > 1 && (
+
+            <div className="pagination">
+
+              <button
+                disabled={currentPage === 1}
+                onClick={() =>
+                  setCurrentPage(prev => prev - 1)
+                }
+              >
+                Prev
+              </button>
+
+              {[...Array(totalPages)].map((_, index) => (
+
+                <button
+                  key={index}
+                  className={
+                    currentPage === index + 1
+                      ? "active-page"
+                      : ""
+                  }
+                  onClick={() =>
+                    setCurrentPage(index + 1)
+                  }
+                >
+                  {index + 1}
+                </button>
+
+              ))}
+
+              <button
+                disabled={
+                  currentPage === totalPages
+                }
+                onClick={() =>
+                  setCurrentPage(prev => prev + 1)
+                }
+              >
+                Next
+              </button>
+
+            </div>
+
+          )}
 
         </>
+
       )}
 
     </div>
-  )
+
+  );
+
 }
 
-export default Insights
+export default Insights;

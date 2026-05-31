@@ -80,7 +80,7 @@ function InsightTable({
 
     <div className="modern-table-wrapper">
 
-      <div className="table-header">
+      {/* <div className="table-header">
 
         <h2>
           Latest AI Insights
@@ -93,7 +93,7 @@ function InsightTable({
           View All →
         </a>
 
-      </div>
+      </div> */}
 
       <div className="table-scroll">
 

@@ -1,10 +1,15 @@
-import React from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef
+} from "react";
 
 import {
-  Search,
-  CalendarDays,
   UserCircle2,
-  Cpu
+  Cpu,
+  ShieldCheck,
+  Globe,
+  Sparkles
 } from "lucide-react";
 
 import {
@@ -16,8 +21,49 @@ function Navbar() {
 
   const location = useLocation();
 
+  const dropdownRef = useRef(null);
+
+  const [profileOpen, setProfileOpen] =
+    useState(false);
+
+  const accountId =
+    localStorage.getItem("account_id");
+
   const isActive = (path) =>
     location.pathname === path;
+
+  /* =========================
+     CLOSE DROPDOWN
+  ========================= */
+
+  useEffect(() => {
+
+    function handleClickOutside(event) {
+
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target)
+      ) {
+        setProfileOpen(false);
+      }
+
+    }
+
+    document.addEventListener(
+      "mousedown",
+      handleClickOutside
+    );
+
+    return () => {
+
+      document.removeEventListener(
+        "mousedown",
+        handleClickOutside
+      );
+
+    };
+
+  }, []);
 
   return (
 
@@ -97,57 +143,138 @@ function Navbar() {
 
       <div className="navbar-right">
 
-        {/* SEARCH */}
+        <div
+          className="profile-wrapper"
+          ref={dropdownRef}
+        >
 
-        <div className="search-box">
+          {/* AVATAR */}
 
-          <Search
-            size={18}
-            className="search-icon"
-          />
+          <div
+            className="profile-avatar"
+            onClick={() =>
+              setProfileOpen(!profileOpen)
+            }
+          >
 
-          <input
-            type="text"
-            placeholder="Search services, insights..."
-          />
+            <UserCircle2 size={22} />
 
-        </div>
+          </div>
 
-        {/* TIME FILTER */}
+          {/* DROPDOWN */}
 
-        <div className="time-filter-wrapper">
+          {profileOpen && (
 
-          <CalendarDays
-            size={18}
-            className="calendar-icon"
-          />
+            <div className="profile-dropdown">
 
-          <select className="time-select">
+              {/* TOP */}
 
-            <option>
-              Last 7 Days
-            </option>
+              <div className="profile-top">
 
-            <option>
-              Last 30 Days
-            </option>
+                <div className="profile-big-avatar">
 
-            <option>
-              Last 90 Days
-            </option>
+                  <UserCircle2 size={42} />
 
-            <option>
-              Last Year
-            </option>
+                </div>
 
-          </select>
+                <div>
 
-        </div>
+                  <h3>
+                    Saitharun
+                  </h3>
 
-        {/* PROFILE */}
+                  <span>
+                    AI Cloud Architect
+                  </span>
 
-        <div className="profile-avatar">
-          <UserCircle2 size={22} />
+                </div>
+
+              </div>
+
+              {/* STATUS */}
+
+              <div className="profile-status">
+
+                <div className="status-dot"></div>
+
+                <span>
+                  Monitoring Active
+                </span>
+
+              </div>
+
+              {/* INFO */}
+
+              <div className="profile-info-grid">
+
+                <div className="profile-info-card">
+
+                  <ShieldCheck size={16} />
+
+                  <div>
+
+                    <label>
+                      Account ID
+                    </label>
+
+                    <p>
+                      {accountId || "N/A"}
+                    </p>
+
+                  </div>
+
+                </div>
+
+                <div className="profile-info-card">
+
+                  <Globe size={16} />
+
+                  <div>
+
+                    <label>
+                      Region
+                    </label>
+
+                    <p>
+                      eu-north-1
+                    </p>
+
+                  </div>
+
+                </div>
+
+                <div className="profile-info-card">
+
+                  <Sparkles size={16} />
+
+                  <div>
+
+                    <label>
+                      Environment
+                    </label>
+
+                    <p>
+                      Production
+                    </p>
+
+                  </div>
+
+                </div>
+
+              </div>
+
+              {/* FOOTER */}
+
+              <div className="profile-footer">
+
+                Enterprise AI Monitoring Suite
+
+              </div>
+
+            </div>
+
+          )}
+
         </div>
 
       </div>
