@@ -164,4 +164,6 @@ phase 4: Frontend interface. (Completed)
 phase 5: Cloud Architecture setup (Completed)
 phase 6: Polish and delievery phase (In Progress)
 
+update will go on soon ..
+
 ---
