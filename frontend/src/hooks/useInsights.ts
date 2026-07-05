@@ -1,6 +1,9 @@
 import { useQuery } from "@apollo/client/react";
+import { useEffect } from "react";
 import { GET_INSIGHTS } from "../api/graphql/queries";
 import { InsightsResponse } from "../types/insight";
+
+import { demoInsights } from "../data/insightsData";
 
 type UseInsightsParams = {
   accountId: string;
@@ -15,7 +18,6 @@ export const useInsights = ({
   severity = null,
   limit = 50,
 }: UseInsightsParams) => {
-
   const query = useQuery<InsightsResponse>(GET_INSIGHTS, {
     variables: {
       accountId,
@@ -29,21 +31,57 @@ export const useInsights = ({
     pollInterval: 60000,
   });
 
-  const insights = query.data?.insights ?? [];
+  const isDemoMode = Boolean(query.error);
 
-  const error = query.error
-    ? {
-        message: "Failed to load insights",
-        details: [query.error?.message ?? "Unknown error"],
-      }
-    : null;
+  const liveInsights = query.data?.insights ?? [];
 
-  const isEmpty = !query.loading && insights.length === 0;
+  const filteredDemoInsights = demoInsights
+    .filter((insight) => {
+      const serviceMatches =
+        !service || insight.service === service;
+
+      const severityMatches =
+        !severity || insight.severity === severity;
+
+      return serviceMatches && severityMatches;
+    })
+    .slice(0, limit);
+
+  const insights = isDemoMode
+    ? filteredDemoInsights
+    : liveInsights;
+
+  const loading = isDemoMode
+    ? false
+    : query.loading;
+
+  useEffect(() => {
+  window.dispatchEvent(
+    new CustomEvent("data-source-change", {
+      detail: isDemoMode ? "DEMO" : "LIVE",
+    })
+  );
+}, [isDemoMode]);
+
+  const error =
+    query.error && !isDemoMode
+      ? {
+          message: "Failed to load insights",
+          details: [
+            query.error?.message ?? "Unknown error",
+          ],
+        }
+      : null;
+
+  const isEmpty =
+    !loading && insights.length === 0;
 
   return {
     insights,
-    loading: query.loading,
+    loading,
     error,
     isEmpty,
+    isDemoMode,
+    dataSource: isDemoMode ? "DEMO" : "LIVE",
   };
 };

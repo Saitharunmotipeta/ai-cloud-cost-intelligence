@@ -6962,3 +6962,61 @@ body {
   }
 
 }
+
+.demo-mode-wrapper {
+  position: relative;
+  margin-left: 18px;
+}
+
+.demo-mode-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: 8px;
+  background: rgba(245, 158, 11, 0.1);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.7px;
+  cursor: help;
+}
+
+.demo-mode-tooltip {
+  position: absolute;
+  top: calc(100% + 12px);
+  left: 0;
+  width: 310px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: #111827;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.35);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-5px);
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease,
+    visibility 0.2s ease;
+  z-index: 1000;
+}
+
+.demo-mode-wrapper:hover .demo-mode-tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.demo-mode-tooltip strong {
+  display: block;
+  margin-bottom: 7px;
+  font-size: 13px;
+}
+
+.demo-mode-tooltip p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+  opacity: 0.72;
+}

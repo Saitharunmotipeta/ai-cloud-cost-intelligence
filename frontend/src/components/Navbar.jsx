@@ -9,7 +9,8 @@ import {
   Cpu,
   ShieldCheck,
   Globe,
-  Sparkles
+  Sparkles,
+  FlaskConical
 } from "lucide-react";
 
 import {
@@ -26,11 +27,44 @@ function Navbar() {
   const [profileOpen, setProfileOpen] =
     useState(false);
 
+  const [isDemoMode, setIsDemoMode] =
+    useState(false);
+
   const accountId =
     localStorage.getItem("account_id");
 
   const isActive = (path) =>
     location.pathname === path;
+
+  /* =========================
+     DATA SOURCE LISTENER
+  ========================= */
+
+  useEffect(() => {
+
+    function handleDataSourceChange(event) {
+
+      setIsDemoMode(
+        event.detail === "DEMO"
+      );
+
+    }
+
+    window.addEventListener(
+      "data-source-change",
+      handleDataSourceChange
+    );
+
+    return () => {
+
+      window.removeEventListener(
+        "data-source-change",
+        handleDataSourceChange
+      );
+
+    };
+
+  }, []);
 
   /* =========================
      CLOSE DROPDOWN
@@ -96,6 +130,42 @@ function Navbar() {
 
         </Link>
 
+        {/* DEMO MODE */}
+
+        {isDemoMode && (
+
+          <div className="demo-mode-wrapper">
+
+            <div className="demo-mode-badge">
+
+              <FlaskConical size={14} />
+
+              <span>
+                DEMO MODE
+              </span>
+
+            </div>
+
+            <div className="demo-mode-tooltip">
+
+              <strong>
+                Simulated Cloud Environment
+              </strong>
+
+              <p>
+                The live cloud backend is currently
+                unavailable. Simulated monitoring data
+                is displayed so the platform remains
+                explorable and its cloud intelligence
+                workflows can still be demonstrated.
+              </p>
+
+            </div>
+
+          </div>
+
+        )}
+
       </div>
 
       {/* CENTER */}
@@ -148,8 +218,6 @@ function Navbar() {
           ref={dropdownRef}
         >
 
-          {/* AVATAR */}
-
           <div
             className="profile-avatar"
             onClick={() =>
@@ -161,13 +229,9 @@ function Navbar() {
 
           </div>
 
-          {/* DROPDOWN */}
-
           {profileOpen && (
 
             <div className="profile-dropdown">
-
-              {/* TOP */}
 
               <div className="profile-top">
 
@@ -191,8 +255,6 @@ function Navbar() {
 
               </div>
 
-              {/* STATUS */}
-
               <div className="profile-status">
 
                 <div className="status-dot"></div>
@@ -202,8 +264,6 @@ function Navbar() {
                 </span>
 
               </div>
-
-              {/* INFO */}
 
               <div className="profile-info-grid">
 
@@ -262,8 +322,6 @@ function Navbar() {
                 </div>
 
               </div>
-
-              {/* FOOTER */}
 
               <div className="profile-footer">
 

@@ -1,4 +1,5 @@
 import { useQuery } from "@apollo/client/react";
+import { useEffect } from "react";
 
 import {
   GET_INSIGHTS,
@@ -11,6 +12,12 @@ import {
   Severity,
   DailyInsight,
 } from "../types/dashboard";
+
+import {
+  demoDashboardInsights,
+  demoSeverityBreakdown,
+  demoDailyInsights,
+} from "../data/dashboardData";
 
 type InsightsResponse = {
   insights: Insight[];
@@ -35,18 +42,15 @@ export const useDashboard = ({
   service = null,
   severity = null,
 }: UseDashboardParams) => {
-
-  // 🚨 SAFETY: prevent invalid GraphQL call
   const shouldSkip = !accountId;
 
   const commonOptions = {
     errorPolicy: "all" as const,
     fetchPolicy: "network-only" as const,
-    pollInterval: 1500000, // 🔥 keep 1 min or increase later
-    skip: shouldSkip,    // 🔥 CRITICAL FIX
+    pollInterval: 1500000,
+    skip: shouldSkip,
   };
 
-  // 🔥 Insights (FILTERED)
   const insightsQuery = useQuery<InsightsResponse>(
     GET_INSIGHTS,
     {
@@ -61,7 +65,6 @@ export const useDashboard = ({
     }
   );
 
-  // 🔥 Severity Breakdown
   const severityQuery = useQuery<SeverityResponse>(
     GET_SEVERITY_BREAKDOWN,
     {
@@ -70,7 +73,6 @@ export const useDashboard = ({
     }
   );
 
-  // 🔥 Daily Insights
   const dailyQuery = useQuery<DailyResponse>(
     GET_DAILY_INSIGHTS,
     {
@@ -79,14 +81,55 @@ export const useDashboard = ({
     }
   );
 
-  const insights = insightsQuery.data?.insights ?? [];
-  const severityData = severityQuery.data?.severityBreakdown ?? [];
-  const daily = dailyQuery.data?.dailyInsights ?? [];
+  const hasQueryError =
+    Boolean(insightsQuery.error) ||
+    Boolean(severityQuery.error) ||
+    Boolean(dailyQuery.error);
 
-  const loading =
-    insightsQuery.loading ||
-    severityQuery.loading ||
-    dailyQuery.loading;
+  const isDemoMode = !shouldSkip && hasQueryError;
+
+  const liveInsights = insightsQuery.data?.insights ?? [];
+  const liveSeverity =
+    severityQuery.data?.severityBreakdown ?? [];
+  const liveDaily = dailyQuery.data?.dailyInsights ?? [];
+
+  const filteredDemoInsights = demoDashboardInsights.filter(
+    (insight) => {
+      const serviceMatches =
+        !service || insight.service === service;
+
+      const severityMatches =
+        !severity || insight.severity === severity;
+
+      return serviceMatches && severityMatches;
+    }
+  );
+
+  const insights = isDemoMode
+    ? filteredDemoInsights
+    : liveInsights;
+
+  const severityData = isDemoMode
+    ? demoSeverityBreakdown
+    : liveSeverity;
+
+  const daily = isDemoMode
+    ? demoDailyInsights
+    : liveDaily;
+
+  const loading = isDemoMode
+    ? false
+    : insightsQuery.loading ||
+      severityQuery.loading ||
+      dailyQuery.loading;
+
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent("data-source-change", {
+        detail: isDemoMode ? "DEMO" : "LIVE",
+      })
+    );
+  }, [isDemoMode]);
 
   const errors = [
     insightsQuery.error,
@@ -94,12 +137,15 @@ export const useDashboard = ({
     dailyQuery.error,
   ].filter(Boolean);
 
-  const error = errors.length
-    ? {
-        message: "Some dashboard data failed to load",
-        details: errors.map((e) => e?.message ?? "Unknown error"),
-      }
-    : null;
+  const error =
+    errors.length && !isDemoMode
+      ? {
+          message: "Some dashboard data failed to load",
+          details: errors.map(
+            (e) => e?.message ?? "Unknown error"
+          ),
+        }
+      : null;
 
   return {
     insights,
@@ -107,8 +153,12 @@ export const useDashboard = ({
     daily,
     loading,
     error,
+    isDemoMode,
+    dataSource: isDemoMode ? "DEMO" : "LIVE",
     isPartial:
-      (!insights.length || !severityData.length || !daily.length) &&
+      (!insights.length ||
+        !severityData.length ||
+        !daily.length) &&
       !loading,
   };
 };
