@@ -50,6 +50,24 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Create CI environment file
+        run: |
+          cat <<EOF > .env
+          ENVIRONMENT=ci
+          BROKER_TYPE=redis
+          GROQ_API_KEY=ci-placeholder
+          REDIS_HOST=redis
+          REDIS_PORT=6379
+          INGESTION_QUEUE_URL=ci-placeholder
+          ANALYTICS_QUEUE_URL=ci-placeholder
+          INTELLIGENCE_QUEUE_URL=ci-placeholder
+          AWS_ACCESS_KEY_ID=ci-placeholder
+          AWS_SECRET_ACCESS_KEY=ci-placeholder
+          AWS_DEFAULT_REGION=eu-north-1
+          GRAPHQL_PORT=8000
+          DATABASE_URL=postgresql://ci:ci@localhost:5432/ci
+          EOF
+
       - name: Validate Docker Compose configuration
         working-directory: infrastructure/docker
         run: docker compose config
