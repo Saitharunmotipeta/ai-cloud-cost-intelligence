@@ -1,0 +1,260 @@
+name: CD - Deploy to AWS
+
+on:
+  workflow_run:
+    workflows:
+      - CI - Build and Validate
+    types:
+      - completed
+    branches:
+      - main
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+  id-token: write
+
+jobs:
+  deployment-gate:
+    name: Verify CI Success
+    runs-on: ubuntu-latest
+
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+
+    steps:
+      - name: Confirm deployment eligibility
+        run: |
+          echo "CI pipeline completed successfully."
+          echo "Deployment is authorized."
+
+  deploy-frontend:
+    name: Deploy Frontend to AWS
+    runs-on: ubuntu-latest
+
+    needs:
+      - deployment-gate
+
+    steps:
+      - name: Download frontend artifact from CI
+        if: github.event_name == 'workflow_run'
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
+
+      - name: Checkout repository for manual deployment
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js for manual deployment
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build frontend for manual deployment
+        if: github.event_name == 'workflow_dispatch'
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Configure AWS credentials using OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Deploy frontend to S3
+        run: |
+          aws s3 sync frontend/dist/ \
+            "s3://${{ vars.S3_BUCKET }}" \
+            --delete
+
+      - name: Invalidate CloudFront cache
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id "${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}" \
+            --paths "/*"
+
+      - name: Confirm frontend deployment
+        run: |
+          echo "Frontend deployed successfully."
+          echo "CloudFront invalidation created."
+
+  deploy-backend:
+    name: Deploy Backend to EC2
+    runs-on: ubuntu-latest
+
+    needs:
+      - deployment-gate
+
+    steps:
+      - name: Configure SSH private key
+        env:
+          EC2_SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+
+          printf '%s\n' "$EC2_SSH_PRIVATE_KEY" \
+            > ~/.ssh/ec2_key.pem
+
+          chmod 600 ~/.ssh/ec2_key.pem
+
+      - name: Add EC2 host to known hosts
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+        run: |
+          HOST="${EC2_HOST#*@}"
+
+          ssh-keyscan -H "$HOST" \
+            >> ~/.ssh/known_hosts
+
+      - name: Deploy backend services
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          REMOTE_PROJECT_DIR: ${{ vars.REMOTE_PROJECT_DIR }}
+        run: |
+          ssh \
+            -i ~/.ssh/ec2_key.pem \
+            "$EC2_HOST" \
+            "cd '$REMOTE_PROJECT_DIR' && \
+             git pull origin main && \
+             cd infrastructure/docker && \
+             docker-compose up -d --build && \
+             docker-compose ps"
+
+  health-verification:
+    name: Verify Service Health
+    runs-on: ubuntu-latest
+
+    needs:
+      - deploy-backend
+
+    steps:
+      - name: Configure SSH private key
+        env:
+          EC2_SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+
+          printf '%s\n' "$EC2_SSH_PRIVATE_KEY" \
+            > ~/.ssh/ec2_key.pem
+
+          chmod 600 ~/.ssh/ec2_key.pem
+
+      - name: Add EC2 host to known hosts
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+        run: |
+          HOST="${EC2_HOST#*@}"
+
+          ssh-keyscan -H "$HOST" \
+            >> ~/.ssh/known_hosts
+
+      - name: Verify ingestion service health
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+        run: |
+          ssh \
+            -i ~/.ssh/ec2_key.pem \
+            "$EC2_HOST" \
+            '
+            echo "Checking ingestion-service health..."
+
+            for attempt in 1 2 3 4 5 6; do
+
+              RESPONSE=$(curl \
+                --silent \
+                --fail \
+                http://localhost:8001/health || true)
+
+              if echo "$RESPONSE" | grep -q "\"status\""; then
+
+                echo "Ingestion service is healthy."
+                echo "$RESPONSE"
+
+                exit 0
+
+              fi
+
+              echo "Health check attempt $attempt failed."
+              echo "Waiting 10 seconds..."
+
+              sleep 10
+
+            done
+
+            echo "Ingestion service health verification failed."
+
+            exit 1
+            '
+
+      - name: Verify GraphQL gateway health
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+        run: |
+          ssh \
+            -i ~/.ssh/ec2_key.pem \
+            "$EC2_HOST" \
+            '
+            echo "Checking graphql-gateway health..."
+
+            for attempt in 1 2 3 4 5 6; do
+
+              RESPONSE=$(curl \
+                --silent \
+                --fail \
+                http://localhost:8000/health || true)
+
+              if echo "$RESPONSE" | grep -q "\"status\":\"graphql-running\""; then
+
+                echo "GraphQL gateway is healthy."
+                echo "$RESPONSE"
+
+                exit 0
+
+              fi
+
+              echo "Health check attempt $attempt failed."
+              echo "Waiting 10 seconds..."
+
+              sleep 10
+
+            done
+
+            echo "GraphQL gateway health verification failed."
+
+            exit 1
+            '
+
+      - name: Deployment verification completed
+        run: |
+          echo "Backend deployment verified."
+          echo "Ingestion service is healthy."
+          echo "GraphQL gateway is healthy."
+          echo "CD pipeline completed successfully."
+
+  deployment-success:
+    name: Deployment Success
+    runs-on: ubuntu-latest
+
+    needs:
+      - deploy-frontend
+      - health-verification
+
+    steps:
+      - name: Confirm deployment
+        run: |
+          echo "========================================"
+          echo "Cloud Cost Intelligence"
+          echo "Deployment completed successfully."
+          echo "========================================"

@@ -9,8 +9,7 @@ import {
   Cpu,
   ShieldCheck,
   Globe,
-  Sparkles,
-  FlaskConical
+  Sparkles
 } from "lucide-react";
 
 import {
@@ -132,40 +131,53 @@ function Navbar() {
 
         {/* DEMO MODE */}
 
-        {isDemoMode && (
+{/* DATA SOURCE STATUS */}
 
-          <div className="demo-mode-wrapper">
+  <div className="data-source-wrapper">
 
-            <div className="demo-mode-badge">
+    <div
+      className={`data-source-badge ${
+        isDemoMode
+          ? "demo-source"
+          : "live-source"
+      }`}
+    >
 
-              <FlaskConical size={14} />
+      <div className="data-source-dot"></div>
 
-              <span>
-                DEMO MODE
-              </span>
+      <span>
+        {isDemoMode
+          ? "DEMO MODE"
+          : "LIVE DATA"}
+      </span>
 
-            </div>
+    </div>
 
-            <div className="demo-mode-tooltip">
+    <div className="data-source-tooltip">
 
-              <strong>
-                Simulated Cloud Environment
-              </strong>
+      <strong>
+        {isDemoMode
+          ? "Simulated Cloud Environment"
+          : "Live Cloud Environment"}
+      </strong>
 
-              <p>
-                The live cloud backend is currently
-                unavailable. Simulated monitoring data
-                is displayed so the platform remains
-                explorable and its cloud intelligence
-                workflows can still be demonstrated.
-              </p>
+      <p>
 
-            </div>
+        {isDemoMode
+          ? `The live cloud backend is currently unavailable.
+            Simulated monitoring data is displayed so the
+            platform remains explorable and its cloud
+            intelligence workflows can still be demonstrated.`
+          : `The platform is connected to the live cloud
+            monitoring backend. Insights, anomalies, and
+            analytics are generated from the active
+            monitoring pipeline.`}
 
-          </div>
+      </p>
 
-        )}
+    </div>
 
+  </div>
       </div>
 
       {/* CENTER */}
