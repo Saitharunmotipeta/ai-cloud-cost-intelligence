@@ -25,11 +25,26 @@ jobs:
       github.event_name == 'workflow_dispatch' ||
       github.event.workflow_run.conclusion == 'success'
 
+    outputs:
+      start_epoch: ${{ steps.deployment-start.outputs.start_epoch }}
+      start_ist: ${{ steps.deployment-start.outputs.start_ist }}
+
     steps:
       - name: Confirm deployment eligibility
         run: |
           echo "CI pipeline completed successfully."
           echo "Deployment is authorized."
+
+      - name: Capture deployment start time
+        id: deployment-start
+        run: |
+          START_EPOCH=$(date +%s)
+          START_IST=$(TZ=Asia/Kolkata date '+%d %b %Y, %I:%M:%S %p IST')
+
+          echo "start_epoch=$START_EPOCH" >> "$GITHUB_OUTPUT"
+          echo "start_ist=$START_IST" >> "$GITHUB_OUTPUT"
+
+          echo "Deployment started at $START_IST"
 
   deploy-frontend:
     name: Deploy Frontend to AWS
@@ -37,6 +52,10 @@ jobs:
 
     needs:
       - deployment-gate
+
+    outputs:
+      file_count: ${{ steps.frontend-metrics.outputs.file_count }}
+      build_size: ${{ steps.frontend-metrics.outputs.build_size }}
 
     steps:
       - name: Download frontend artifact from CI
@@ -67,6 +86,18 @@ jobs:
           npm ci
           npm run build
 
+      - name: Capture frontend metrics
+        id: frontend-metrics
+        run: |
+          FILE_COUNT=$(find frontend/dist -type f | wc -l)
+          BUILD_SIZE=$(du -sh frontend/dist | cut -f1)
+
+          echo "file_count=$FILE_COUNT" >> "$GITHUB_OUTPUT"
+          echo "build_size=$BUILD_SIZE" >> "$GITHUB_OUTPUT"
+
+          echo "Frontend files: $FILE_COUNT"
+          echo "Frontend build size: $BUILD_SIZE"
+
       - name: Configure AWS credentials using OIDC
         uses: aws-actions/configure-aws-credentials@v6
         with:
@@ -96,6 +127,10 @@ jobs:
 
     needs:
       - deployment-gate
+
+    outputs:
+      container_total: ${{ steps.backend-metrics.outputs.container_total }}
+      container_running: ${{ steps.backend-metrics.outputs.container_running }}
 
     steps:
       - name: Configure SSH private key
@@ -132,12 +167,44 @@ jobs:
              docker-compose up -d --build && \
              docker-compose ps"
 
+      - name: Capture Docker metrics
+        id: backend-metrics
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          REMOTE_PROJECT_DIR: ${{ vars.REMOTE_PROJECT_DIR }}
+        run: |
+          METRICS=$(ssh \
+            -i ~/.ssh/ec2_key.pem \
+            "$EC2_HOST" \
+            "cd '$REMOTE_PROJECT_DIR/infrastructure/docker' && \
+             TOTAL=\$(docker-compose ps -q | wc -l) && \
+             RUNNING=\$(docker-compose ps -q | xargs -r docker inspect -f '{{.State.Running}}' | grep -c true || true) && \
+             echo \"\$TOTAL,\$RUNNING\"")
+
+          CONTAINER_TOTAL=$(echo "$METRICS" | tail -n 1 | cut -d',' -f1)
+          CONTAINER_RUNNING=$(echo "$METRICS" | tail -n 1 | cut -d',' -f2)
+
+          echo "container_total=$CONTAINER_TOTAL" >> "$GITHUB_OUTPUT"
+          echo "container_running=$CONTAINER_RUNNING" >> "$GITHUB_OUTPUT"
+
+          echo "Docker containers total: $CONTAINER_TOTAL"
+          echo "Docker containers running: $CONTAINER_RUNNING"
+
   health-verification:
     name: Verify Service Health
     runs-on: ubuntu-latest
 
     needs:
       - deploy-backend
+
+    outputs:
+      ingestion_attempt: ${{ steps.ingestion-health.outputs.attempt }}
+      ingestion_response_ms: ${{ steps.ingestion-health.outputs.response_ms }}
+      graphql_attempt: ${{ steps.graphql-health.outputs.attempt }}
+      graphql_response_ms: ${{ steps.graphql-health.outputs.response_ms }}
+      endpoints_tested: ${{ steps.health-metrics.outputs.endpoints_tested }}
+      endpoints_passed: ${{ steps.health-metrics.outputs.endpoints_passed }}
+      health_success_rate: ${{ steps.health-metrics.outputs.health_success_rate }}
 
     steps:
       - name: Configure SSH private key
@@ -161,80 +228,133 @@ jobs:
             >> ~/.ssh/known_hosts
 
       - name: Verify ingestion service health
+        id: ingestion-health
         env:
           EC2_HOST: ${{ secrets.EC2_HOST }}
         run: |
-          ssh \
-            -i ~/.ssh/ec2_key.pem \
-            "$EC2_HOST" \
-            '
-            echo "Checking ingestion-service health..."
+          for attempt in 1 2 3 4 5 6; do
 
-            for attempt in 1 2 3 4 5 6; do
+            RESULT=$(ssh \
+              -i ~/.ssh/ec2_key.pem \
+              "$EC2_HOST" \
+              "curl --silent --output /tmp/ingestion-health.json \
+               --write-out '%{http_code},%{time_total}' \
+               http://localhost:8001/health || true")
 
-              RESPONSE=$(curl \
-                --silent \
-                --fail \
-                http://localhost:8001/health || true)
+            HTTP_CODE=$(echo "$RESULT" | cut -d',' -f1)
+            RESPONSE_TIME=$(echo "$RESULT" | cut -d',' -f2)
 
-              if echo "$RESPONSE" | grep -q "\"status\""; then
+            if [ "$HTTP_CODE" = "200" ]; then
+
+              RESPONSE=$(ssh \
+                -i ~/.ssh/ec2_key.pem \
+                "$EC2_HOST" \
+                "cat /tmp/ingestion-health.json")
+
+              if echo "$RESPONSE" | grep -q '"status"'; then
+
+                RESPONSE_MS=$(awk \
+                  "BEGIN {printf \"%.2f\", $RESPONSE_TIME * 1000}")
+
+                echo "attempt=$attempt" >> "$GITHUB_OUTPUT"
+                echo "response_ms=$RESPONSE_MS" >> "$GITHUB_OUTPUT"
 
                 echo "Ingestion service is healthy."
+                echo "Attempt: $attempt"
+                echo "Response time: ${RESPONSE_MS} ms"
                 echo "$RESPONSE"
 
                 exit 0
 
               fi
 
-              echo "Health check attempt $attempt failed."
-              echo "Waiting 10 seconds..."
+            fi
 
-              sleep 10
+            echo "Health check attempt $attempt failed."
+            echo "Waiting 10 seconds..."
 
-            done
+            sleep 10
 
-            echo "Ingestion service health verification failed."
+          done
 
-            exit 1
-            '
+          echo "Ingestion service health verification failed."
+
+          exit 1
 
       - name: Verify GraphQL gateway health
+        id: graphql-health
         env:
           EC2_HOST: ${{ secrets.EC2_HOST }}
         run: |
-          ssh \
-            -i ~/.ssh/ec2_key.pem \
-            "$EC2_HOST" \
-            '
-            echo "Checking graphql-gateway health..."
+          for attempt in 1 2 3 4 5 6; do
 
-            for attempt in 1 2 3 4 5 6; do
+            RESULT=$(ssh \
+              -i ~/.ssh/ec2_key.pem \
+              "$EC2_HOST" \
+              "curl --silent --output /tmp/graphql-health.json \
+               --write-out '%{http_code},%{time_total}' \
+               http://localhost:8000/health || true")
 
-              RESPONSE=$(curl \
-                --silent \
-                --fail \
-                http://localhost:8000/health || true)
+            HTTP_CODE=$(echo "$RESULT" | cut -d',' -f1)
+            RESPONSE_TIME=$(echo "$RESULT" | cut -d',' -f2)
 
-              if echo "$RESPONSE" | grep -q "\"status\":\"graphql-running\""; then
+            if [ "$HTTP_CODE" = "200" ]; then
+
+              RESPONSE=$(ssh \
+                -i ~/.ssh/ec2_key.pem \
+                "$EC2_HOST" \
+                "cat /tmp/graphql-health.json")
+
+              if echo "$RESPONSE" | grep -q '"status":"graphql-running"'; then
+
+                RESPONSE_MS=$(awk \
+                  "BEGIN {printf \"%.2f\", $RESPONSE_TIME * 1000}")
+
+                echo "attempt=$attempt" >> "$GITHUB_OUTPUT"
+                echo "response_ms=$RESPONSE_MS" >> "$GITHUB_OUTPUT"
 
                 echo "GraphQL gateway is healthy."
+                echo "Attempt: $attempt"
+                echo "Response time: ${RESPONSE_MS} ms"
                 echo "$RESPONSE"
 
                 exit 0
 
               fi
 
-              echo "Health check attempt $attempt failed."
-              echo "Waiting 10 seconds..."
+            fi
 
-              sleep 10
+            echo "Health check attempt $attempt failed."
+            echo "Waiting 10 seconds..."
 
-            done
+            sleep 10
 
-            echo "GraphQL gateway health verification failed."
+          done
 
-            exit 1
-            '
+          echo "GraphQL gateway health verification failed."
+
+          exit 1
+
+      - name: Calculate health metrics
+        id: health-metrics
+        run: |
+          ENDPOINTS_TESTED=2
+          ENDPOINTS_PASSED=2
+
+          HEALTH_SUCCESS_RATE=$(
+            awk "BEGIN {
+              printf \"%.0f\",
+              ($ENDPOINTS_PASSED / $ENDPOINTS_TESTED) * 100
+            }"
+          )
+
+          echo "endpoints_tested=$ENDPOINTS_TESTED" >> "$GITHUB_OUTPUT"
+          echo "endpoints_passed=$ENDPOINTS_PASSED" >> "$GITHUB_OUTPUT"
+          echo "health_success_rate=$HEALTH_SUCCESS_RATE" >> "$GITHUB_OUTPUT"
+
+          echo "Health endpoints tested: $ENDPOINTS_TESTED"
+          echo "Health endpoints passed: $ENDPOINTS_PASSED"
+          echo "Health success rate: ${HEALTH_SUCCESS_RATE}%"
 
       - name: Deployment verification completed
         run: |
@@ -243,13 +363,334 @@ jobs:
           echo "GraphQL gateway is healthy."
           echo "CD pipeline completed successfully."
 
+  deployment-notification:
+    name: Send Deployment Report
+    runs-on: ubuntu-latest
+
+    if: always()
+
+    needs:
+      - deployment-gate
+      - deploy-frontend
+      - deploy-backend
+      - health-verification
+
+    steps:
+      - name: Configure AWS credentials using OIDC
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Generate deployment report
+        id: deployment-report
+        env:
+          START_EPOCH: ${{ needs.deployment-gate.outputs.start_epoch }}
+          START_IST: ${{ needs.deployment-gate.outputs.start_ist }}
+
+          FRONTEND_RESULT: ${{ needs.deploy-frontend.result }}
+          BACKEND_RESULT: ${{ needs.deploy-backend.result }}
+          HEALTH_RESULT: ${{ needs.health-verification.result }}
+
+          FILE_COUNT: ${{ needs.deploy-frontend.outputs.file_count }}
+          BUILD_SIZE: ${{ needs.deploy-frontend.outputs.build_size }}
+
+          CONTAINER_TOTAL: ${{ needs.deploy-backend.outputs.container_total }}
+          CONTAINER_RUNNING: ${{ needs.deploy-backend.outputs.container_running }}
+
+          INGESTION_ATTEMPT: ${{ needs.health-verification.outputs.ingestion_attempt }}
+          INGESTION_RESPONSE_MS: ${{ needs.health-verification.outputs.ingestion_response_ms }}
+
+          GRAPHQL_ATTEMPT: ${{ needs.health-verification.outputs.graphql_attempt }}
+          GRAPHQL_RESPONSE_MS: ${{ needs.health-verification.outputs.graphql_response_ms }}
+
+          ENDPOINTS_TESTED: ${{ needs.health-verification.outputs.endpoints_tested }}
+          ENDPOINTS_PASSED: ${{ needs.health-verification.outputs.endpoints_passed }}
+          HEALTH_SUCCESS_RATE: ${{ needs.health-verification.outputs.health_success_rate }}
+        run: |
+          END_EPOCH=$(date +%s)
+          END_IST=$(TZ=Asia/Kolkata date '+%d %b %Y, %I:%M:%S %p IST')
+
+          if [ -n "$START_EPOCH" ]; then
+            DURATION=$((END_EPOCH - START_EPOCH))
+          else
+            DURATION=0
+          fi
+
+          if \
+            [ "$FRONTEND_RESULT" = "success" ] && \
+            [ "$BACKEND_RESULT" = "success" ] && \
+            [ "$HEALTH_RESULT" = "success" ]; then
+
+            STATUS="SUCCESS"
+            FINAL_STATE="LIVE BACKEND VERIFIED"
+
+          else
+
+            STATUS="FAILED"
+            FINAL_STATE="DEPLOYMENT REQUIRES ATTENTION"
+
+          fi
+
+          echo "status=$STATUS" >> "$GITHUB_OUTPUT"
+
+          cat > deployment-report.html <<EOF
+          <!DOCTYPE html>
+          <html>
+          <body style="margin:0;padding:0;background:#f4f7fb;font-family:Arial,sans-serif;color:#172033;">
+
+            <div style="max-width:760px;margin:32px auto;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb;">
+
+              <div style="background:#111827;color:#ffffff;padding:28px 32px;">
+                <h1 style="margin:0;font-size:24px;">
+                  AI Cloud Cost Intelligence
+                </h1>
+
+                <p style="margin:8px 0 0;color:#cbd5e1;">
+                  Production Deployment Report
+                </p>
+              </div>
+
+              <div style="padding:28px 32px;">
+
+                <h2>Deployment Status: $STATUS</h2>
+
+                <table style="width:100%;border-collapse:collapse;">
+                  <tr>
+                    <td><strong>Started At</strong></td>
+                    <td>$START_IST</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Completed At</strong></td>
+                    <td>$END_IST</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Total Duration</strong></td>
+                    <td>${DURATION} seconds</td>
+                  </tr>
+                </table>
+
+                <hr style="margin:24px 0;border:none;border-top:1px solid #e5e7eb;">
+
+                <h3>Source Information</h3>
+
+                <table style="width:100%;border-collapse:collapse;">
+                  <tr>
+                    <td><strong>Repository</strong></td>
+                    <td>${{ github.repository }}</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Branch</strong></td>
+                    <td>main</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Commit</strong></td>
+                    <td>${{ github.event.workflow_run.head_sha || github.sha }}</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Triggered By</strong></td>
+                    <td>${{ github.actor }}</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Workflow Run</strong></td>
+                    <td>#${{ github.run_number }}</td>
+                  </tr>
+                </table>
+
+                <hr style="margin:24px 0;border:none;border-top:1px solid #e5e7eb;">
+
+                <h3>Deployment Metrics</h3>
+
+                <table style="width:100%;border-collapse:collapse;">
+                  <tr>
+                    <td><strong>Frontend Files</strong></td>
+                    <td>${FILE_COUNT:-N/A}</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Frontend Build Size</strong></td>
+                    <td>${BUILD_SIZE:-N/A}</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Docker Containers Running</strong></td>
+                    <td>${CONTAINER_RUNNING:-N/A} / ${CONTAINER_TOTAL:-N/A}</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Health Endpoints Tested</strong></td>
+                    <td>${ENDPOINTS_TESTED:-N/A}</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Health Endpoints Passed</strong></td>
+                    <td>${ENDPOINTS_PASSED:-N/A}</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Health Success Rate</strong></td>
+                    <td>${HEALTH_SUCCESS_RATE:-N/A}%</td>
+                  </tr>
+                </table>
+
+                <hr style="margin:24px 0;border:none;border-top:1px solid #e5e7eb;">
+
+                <h3>Pipeline Results</h3>
+
+                <table style="width:100%;border-collapse:collapse;">
+                  <tr>
+                    <td><strong>Frontend Deployment</strong></td>
+                    <td>$FRONTEND_RESULT</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Backend Deployment</strong></td>
+                    <td>$BACKEND_RESULT</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Health Verification</strong></td>
+                    <td>$HEALTH_RESULT</td>
+                  </tr>
+                </table>
+
+                <hr style="margin:24px 0;border:none;border-top:1px solid #e5e7eb;">
+
+                <h3>Service Health</h3>
+
+                <table style="width:100%;border-collapse:collapse;">
+                  <tr>
+                    <td><strong>Ingestion Service</strong></td>
+                    <td>
+                      Attempt ${INGESTION_ATTEMPT:-N/A} / 6
+                      |
+                      ${INGESTION_RESPONSE_MS:-N/A} ms
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><strong>GraphQL Gateway</strong></td>
+                    <td>
+                      Attempt ${GRAPHQL_ATTEMPT:-N/A} / 6
+                      |
+                      ${GRAPHQL_RESPONSE_MS:-N/A} ms
+                    </td>
+                  </tr>
+                </table>
+
+                <hr style="margin:24px 0;border:none;border-top:1px solid #e5e7eb;">
+
+                <h3>AWS Deployment</h3>
+
+                <table style="width:100%;border-collapse:collapse;">
+                  <tr>
+                    <td><strong>AWS Region</strong></td>
+                    <td>${{ vars.AWS_REGION }}</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Frontend</strong></td>
+                    <td>Amazon S3 + CloudFront</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Backend</strong></td>
+                    <td>Amazon EC2 + Docker Compose</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Authentication</strong></td>
+                    <td>GitHub OIDC</td>
+                  </tr>
+                </table>
+
+                <hr style="margin:24px 0;border:none;border-top:1px solid #e5e7eb;">
+
+                <h2>$FINAL_STATE</h2>
+
+                <p>
+                  Review the complete deployment execution and logs in GitHub Actions.
+                </p>
+
+                <a
+                  href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                  style="display:inline-block;margin-top:10px;padding:12px 18px;background:#111827;color:#ffffff;text-decoration:none;border-radius:6px;"
+                >
+                  View Workflow Run
+                </a>
+
+              </div>
+
+              <div style="padding:18px 32px;background:#f8fafc;color:#64748b;font-size:12px;">
+                Generated automatically by the AI Cloud Cost Intelligence CI/CD pipeline.
+              </div>
+
+            </div>
+
+          </body>
+          </html>
+          EOF
+
+      - name: Send deployment email through Amazon SES
+        env:
+          SES_FROM_EMAIL: ${{ vars.SES_FROM_EMAIL }}
+          SES_TO_EMAIL: ${{ vars.SES_TO_EMAIL }}
+          DEPLOYMENT_STATUS: ${{ steps.deployment-report.outputs.status }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+
+          with open(
+              "deployment-report.html",
+              "r",
+              encoding="utf-8"
+          ) as file:
+              html = file.read()
+
+          status = os.environ["DEPLOYMENT_STATUS"]
+
+          subject = (
+              f"[DEPLOYMENT {status}] "
+              "AI Cloud Cost Intelligence | main"
+          )
+
+          payload = {
+              "FromEmailAddress": os.environ["SES_FROM_EMAIL"],
+              "Destination": {
+                  "ToAddresses": [
+                      os.environ["SES_TO_EMAIL"]
+                  ]
+              },
+              "Content": {
+                  "Simple": {
+                      "Subject": {
+                          "Data": subject,
+                          "Charset": "UTF-8"
+                      },
+                      "Body": {
+                          "Html": {
+                              "Data": html,
+                              "Charset": "UTF-8"
+                          }
+                      }
+                  }
+              }
+          }
+
+          with open(
+              "ses-email.json",
+              "w",
+              encoding="utf-8"
+          ) as file:
+              json.dump(payload, file)
+          PY
+
+          aws sesv2 send-email \
+            --cli-input-json file://ses-email.json \
+            --region "${{ vars.AWS_REGION }}"
+
   deployment-success:
     name: Deployment Success
     runs-on: ubuntu-latest
 
+    if: >
+      needs.deploy-frontend.result == 'success' &&
+      needs.health-verification.result == 'success'
+
     needs:
       - deploy-frontend
       - health-verification
+      - deployment-notification
 
     steps:
       - name: Confirm deployment
@@ -257,4 +698,5 @@ jobs:
           echo "========================================"
           echo "Cloud Cost Intelligence"
           echo "Deployment completed successfully."
+          echo "Deployment report email sent."
           echo "========================================"
