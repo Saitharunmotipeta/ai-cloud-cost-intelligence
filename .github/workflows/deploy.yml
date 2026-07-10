@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   actions: read
   id-token: write
 
@@ -679,6 +679,115 @@ jobs:
             --cli-input-json file://ses-email.json \
             --region "${{ vars.AWS_REGION }}"
 
+          - name: Archive deployment report
+              uses: actions/upload-artifact@v3
+              with:
+                name: deployment-report
+                path: deployment-report.html
+
+  evidence-recording:
+    name: Record Deployment Evidence
+    runs-on: ubuntu-latest
+
+    if: always()
+
+    needs:
+      - deployment-gate
+      - deploy-frontend
+      - deploy-backend
+      - health-verification
+      - deployment-notification
+
+    steps:
+      - name: Checkout main branch
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Append deployment evidence
+        env:
+          START_EPOCH: ${{ needs.deployment-gate.outputs.start_epoch }}
+
+          FRONTEND_RESULT: ${{ needs.deploy-frontend.result }}
+          BACKEND_RESULT: ${{ needs.deploy-backend.result }}
+          HEALTH_RESULT: ${{ needs.health-verification.result }}
+
+          FILE_COUNT: ${{ needs.deploy-frontend.outputs.file_count }}
+          BUILD_SIZE: ${{ needs.deploy-frontend.outputs.build_size }}
+
+          CONTAINER_RUNNING: ${{ needs.deploy-backend.outputs.container_running }}
+          CONTAINER_TOTAL: ${{ needs.deploy-backend.outputs.container_total }}
+
+          ENDPOINTS_PASSED: ${{ needs.health-verification.outputs.endpoints_passed }}
+          ENDPOINTS_TESTED: ${{ needs.health-verification.outputs.endpoints_tested }}
+          HEALTH_SUCCESS_RATE: ${{ needs.health-verification.outputs.health_success_rate }}
+
+          INGESTION_RESPONSE_MS: ${{ needs.health-verification.outputs.ingestion_response_ms }}
+          GRAPHQL_RESPONSE_MS: ${{ needs.health-verification.outputs.graphql_response_ms }}
+
+          INGESTION_ATTEMPT: ${{ needs.health-verification.outputs.ingestion_attempt }}
+          GRAPHQL_ATTEMPT: ${{ needs.health-verification.outputs.graphql_attempt }}
+
+        run: |
+          mkdir -p docs/evidence/benchmarks
+
+          CSV_FILE="docs/evidence/benchmarks/deployment-runs.csv"
+
+          if [ ! -f "$CSV_FILE" ]; then
+            echo "run_id,timestamp_ist,status,duration_seconds,frontend_files,frontend_build_size,containers_running,containers_total,health_endpoints_passed,health_endpoints_tested,health_success_rate,ingestion_health_ms,graphql_health_ms,ingestion_attempt,graphql_attempt" \
+              > "$CSV_FILE"
+          fi
+
+          END_EPOCH=$(date +%s)
+
+          if [ -n "$START_EPOCH" ]; then
+            DURATION=$((END_EPOCH - START_EPOCH))
+          else
+            DURATION=0
+          fi
+
+          TIMESTAMP_IST=$(TZ=Asia/Kolkata date '+%d %b %Y %I:%M:%S %p IST')
+
+          if \
+            [ "$FRONTEND_RESULT" = "success" ] && \
+            [ "$BACKEND_RESULT" = "success" ] && \
+            [ "$HEALTH_RESULT" = "success" ]; then
+
+            STATUS="SUCCESS"
+
+          else
+
+            STATUS="FAILED"
+
+          fi
+
+          echo "${{ github.run_number }},\"$TIMESTAMP_IST\",$STATUS,$DURATION,${FILE_COUNT:-0},\"${BUILD_SIZE:-N/A}\",${CONTAINER_RUNNING:-0},${CONTAINER_TOTAL:-0},${ENDPOINTS_PASSED:-0},${ENDPOINTS_TESTED:-0},${HEALTH_SUCCESS_RATE:-0},${INGESTION_RESPONSE_MS:-0},${GRAPHQL_RESPONSE_MS:-0},${INGESTION_ATTEMPT:-0},${GRAPHQL_ATTEMPT:-0}" \
+            >> "$CSV_FILE"
+
+          echo "Deployment evidence recorded."
+
+          tail -n 2 "$CSV_FILE"
+
+      - name: Commit deployment evidence
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add docs/evidence/benchmarks/deployment-runs.csv
+
+          if git diff --cached --quiet; then
+            echo "No deployment evidence changes detected."
+            exit 0
+          fi
+
+          git commit \
+            -m "chore(evidence): record deployment run ${{ github.run_number }} [skip ci]"
+
+          git pull --rebase origin main
+
+          git push origin main
+      
   deployment-success:
     name: Deployment Success
     runs-on: ubuntu-latest
