@@ -25,6 +25,8 @@ cd frontend
 npm run build
 cd ..
 
+git pull origin main
+
 echo "📂 Staging changes..."
 git add .
 
