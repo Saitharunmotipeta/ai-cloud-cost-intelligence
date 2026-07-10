@@ -1,0 +1,2 @@
+run_id,timestamp_ist,status,duration_seconds,frontend_files,frontend_build_size,containers_running,containers_total,health_endpoints_passed,health_endpoints_tested,health_success_rate,ingestion_health_ms,graphql_health_ms,ingestion_attempt,graphql_attempt
+5,"10 Jul 2026 11:14:56 AM IST",FAILED,37,3,"860K",0,0,0,0,0,0,0,0,0
