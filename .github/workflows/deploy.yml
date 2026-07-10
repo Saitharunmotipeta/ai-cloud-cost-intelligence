@@ -679,12 +679,6 @@ jobs:
             --cli-input-json file://ses-email.json \
             --region "${{ vars.AWS_REGION }}"
 
-          - name: Archive deployment report
-              uses: actions/upload-artifact@v3
-              with:
-                name: deployment-report
-                path: deployment-report.html
-
   evidence-recording:
     name: Record Deployment Evidence
     runs-on: ubuntu-latest
