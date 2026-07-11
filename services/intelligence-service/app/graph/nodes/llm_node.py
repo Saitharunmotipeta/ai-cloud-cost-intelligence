@@ -12,6 +12,7 @@ def llm_node(state):
     for attempt in range(max_retries + 1):
         try:
             llm = LLMExplainer()
+            llm_start = time.perf_counter()
 
             result = llm.generate_explanation(
                 service=state["service"],
@@ -25,6 +26,12 @@ def llm_node(state):
                 repeat_anomaly=state.get("repeat_anomaly", False),
                 context=state.get("context", []),
             )
+
+            llm_ms = (
+                time.perf_counter() - llm_start
+            ) * 1000
+
+            print(f"🤖 LLM Reasoning Time : {llm_ms:.2f} ms")
 
             # -------------------------
             # 🔥 NORMALIZATION (KEY FIX)
@@ -56,6 +63,7 @@ def llm_node(state):
                 "root_cause": root_cause,
                 "confidence": confidence or "medium",
                 "severity": state.get("severity"),
+                "llm_reasoning_ms": round(llm_ms, 2),
             }
 
         except Exception as e:
@@ -74,4 +82,5 @@ def llm_node(state):
         "root_cause": f"Detected {fallback_cause}, requires investigation",
         "confidence": "low",
         "severity": state.get("severity"),
+        "llm_reasoning_ms": None,
     }

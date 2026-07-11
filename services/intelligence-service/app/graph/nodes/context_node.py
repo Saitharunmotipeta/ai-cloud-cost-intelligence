@@ -1,4 +1,5 @@
 import app.domain.mock_data as mock_data
+import time
 
 
 def context_node(state):
@@ -18,6 +19,8 @@ def context_node(state):
 
     anomaly_type = state.get("anomaly_type", "unknown")
 
+    retrieval_start = time.perf_counter()
+
     # 🔥 FIX: use mock_db correctly
     results = [
         item for item in mock_data.mock_db
@@ -26,9 +29,14 @@ def context_node(state):
 
     final_context = results if results else mock_data.mock_db[:2]
 
+    retrieval_ms = (
+        time.perf_counter() - retrieval_start
+    ) * 1000
+
     print("\n🔍 DEBUG → Pattern:", anomaly_type)
     print("🔍 DEBUG → Available Patterns:", [r.get("pattern") for r in mock_data.mock_db])
     print("🔍 DEBUG → Selected Context:", final_context)
+    print(f"⏱ Context Retrieval Time : {retrieval_ms:.2f} ms")
 
     return {
         "service": state["service"],
@@ -41,5 +49,6 @@ def context_node(state):
         "trend": trend,
 
         "pattern": anomaly_type,
-        "context": final_context
+        "context": final_context,
+        "context_retrieval_ms": round(retrieval_ms, 2)
     }

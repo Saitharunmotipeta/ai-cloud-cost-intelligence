@@ -3,6 +3,7 @@ import logging
 import boto3
 import json
 import os
+import time
 from typing import Set
 
 from shared.events.cost_insight_generated_v1 import CostInsightGeneratedEvent
@@ -103,6 +104,7 @@ class IntelligenceConsumer:
     async def handle_message(self, body: dict):
 
         try:
+            pipeline_start = time.perf_counter()
             original_event = body["original_event"]
             payload = original_event["payload"]
 
@@ -124,6 +126,7 @@ class IntelligenceConsumer:
                 anomaly_type = "low_usage"
 
             print(f"🧠 Classified Pattern → {anomaly_type}")
+            graph_start = time.perf_counter()
 
             result = await self.graph.ainvoke({
                 "account_id": account_id,
@@ -134,6 +137,10 @@ class IntelligenceConsumer:
                 "anomaly_type": anomaly_type,
                 "severity": body.get("severity", "LOW"),
             })
+
+            graph_ms = (
+                time.perf_counter() - graph_start
+            ) * 1000
 
             explanation = result.get("explanation")
             root_cause = result.get("root_cause")
@@ -173,6 +180,16 @@ class IntelligenceConsumer:
                 QueueUrl=self.output_queue_url,
                 MessageBody=json.dumps(insight_event.model_dump(mode="json"))
             )
+            
+
+            pipeline_ms = (
+                time.perf_counter() - pipeline_start
+            ) * 1000
+            print("\n📈 Intelligence Metrics")
+            print(f"🧠 Graph Execution : {graph_ms:.2f} ms")
+            print(f"⚡ Total Intelligence Pipeline : {pipeline_ms:.2f} ms")
+            print(f"📚 Context Retrieval : {result.get('context_retrieval_ms')} ms")
+            print(f"🤖 LLM Reasoning : {result.get('llm_reasoning_ms')} ms")
 
         except Exception as e:
             logger.exception(f"Insight generation failed: {str(e)}")

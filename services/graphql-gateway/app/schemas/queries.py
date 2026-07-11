@@ -1,4 +1,5 @@
 import strawberry
+import time
 from typing import List, Optional
 
 from app.services.insight_service import (
@@ -75,6 +76,8 @@ class Query:
         limit: int = DEFAULT_LIMIT,
         offset: int = 0,
     ) -> List[InsightType]:
+        
+        query_start = time.perf_counter()
 
         limit = validate_limit(limit)
         offset = validate_offset(offset)
@@ -87,6 +90,14 @@ class Query:
             offset=offset,
         )
 
+        query_ms = (
+        time.perf_counter() - query_start
+        ) * 1000
+
+        print(
+            f"📊 GraphQL Insights Query : {query_ms:.2f} ms"
+        )
+
         return [map_to_type(i) for i in results]
 
 
@@ -94,7 +105,17 @@ class Query:
     @strawberry.field
     def service_summary(self, account_id: str) -> List[ServiceSummaryType]:
 
+        query_start = time.perf_counter()
+
         results = get_service_summary(account_id)
+
+        query_ms = (
+            time.perf_counter() - query_start
+        ) * 1000
+
+        print(
+            f"📊 GraphQL Service Summary : {query_ms:.2f} ms"
+        )
 
         return [
             ServiceSummaryType(
@@ -109,7 +130,17 @@ class Query:
     @strawberry.field
     def severity_breakdown(self, account_id: str) -> List[SeverityBreakdownType]:
 
+        query_start = time.perf_counter()
+
         results = get_severity_breakdown(account_id)
+
+        query_ms = (
+            time.perf_counter() - query_start
+        ) * 1000
+
+        print(
+            f"📊 GraphQL Severity Breakdown : {query_ms:.2f} ms"
+        )
 
         return [
             SeverityBreakdownType(
@@ -124,7 +155,17 @@ class Query:
     @strawberry.field
     def daily_insights(self, account_id: str) -> List[DailyInsightType]:
 
+        query_start = time.perf_counter()
+
         results = get_daily_insights(account_id)
+
+        query_ms = (
+            time.perf_counter() - query_start
+        ) * 1000
+
+        print(
+            f"📊 GraphQL Daily Insights : {query_ms:.2f} ms"
+        )
 
         return [
             DailyInsightType(
@@ -138,9 +179,19 @@ class Query:
     @strawberry.field
     def anomalies(self, account_id: str) -> List[AnomalyType]:
 
+        query_start = time.perf_counter()
+
         insights = get_filtered_insights(
             account_id=account_id,
             limit=100
+        )
+
+        query_ms = (
+            time.perf_counter() - query_start
+        ) * 1000
+
+        print(
+            f"📊 GraphQL Anomalies Query : {query_ms:.2f} ms"
         )
 
         return [

@@ -2,6 +2,8 @@ from sqlalchemy.orm import Session
 
 from app.models.insight import Insight
 
+import time 
+
 
 class InsightRepository:
 
@@ -44,8 +46,18 @@ class InsightRepository:
             generated_at=generated_at,
         )
 
+        db_start = time.perf_counter()
+
         self.db.add(insight)
         self.db.commit()
         self.db.refresh(insight)
 
+        db_ms = (
+            time.perf_counter() - db_start
+        ) * 1000
+
+        print(
+            f"🗄 Database Insert Time : {db_ms:.2f} ms"
+        )
+        
         return insight
