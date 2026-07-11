@@ -1,7 +1,43 @@
 {
-    "deployment_count": 1,
-    "successful_deployments": 1,
+    "deployment_count": 2,
+    "successful_deployments": 2,
     "failed_deployments": 0,
     "success_rate": 100.0,
-    "metrics": {}
+    "metrics": {
+        "deployment_duration_sec": {
+            "count": 1,
+            "average": 145.0,
+            "median": 145.0,
+            "minimum": 145.0,
+            "maximum": 145.0
+        },
+        "containers_running": {
+            "count": 1,
+            "average": 4.0,
+            "median": 4.0,
+            "minimum": 4.0,
+            "maximum": 4.0
+        },
+        "health_checks_total": {
+            "count": 1,
+            "average": 2.0,
+            "median": 2.0,
+            "minimum": 2.0,
+            "maximum": 2.0
+        },
+        "health_checks_passed": {
+            "count": 1,
+            "average": 2.0,
+            "median": 2.0,
+            "minimum": 2.0,
+            "maximum": 2.0
+        },
+        "health_success_rate": {
+            "count": 1,
+            "average": 100.0,
+            "median": 100.0,
+            "minimum": 100.0,
+            "maximum": 100.0
+        }
+    }
 }
