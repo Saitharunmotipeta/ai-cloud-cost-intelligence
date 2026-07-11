@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: write
+  actions: read
 
 jobs:
   analyse:
@@ -30,52 +31,82 @@ jobs:
         with:
           python-version: "3.12"
 
-      # ----------------------------------------------------
-      # Export deployment information
-      # ----------------------------------------------------
+      # ----------------------------------------
+      # Download metrics produced by deploy.yml
+      # ----------------------------------------
 
-      - name: Export Benchmark Variables
+      - name: Download Benchmark Metrics
+        uses: actions/download-artifact@v4
+        with:
+          name: deployment-metrics
+          path: benchmarks
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
+
+      - name: Verify Download
+        run: |
+          echo "Downloaded files:"
+          ls -R benchmarks
+
+          echo ""
+          echo "deployment_metrics.json"
+          cat benchmarks/deployment_metrics.json
+
+      # ----------------------------------------
+      # Export GitHub metadata
+      # ----------------------------------------
+
+      - name: Export Deployment Metadata
         run: |
           echo "DEPLOYMENT_TIMESTAMP=${{ github.event.workflow_run.updated_at }}" >> $GITHUB_ENV
           echo "COMMIT_SHA=${{ github.event.workflow_run.head_sha }}" >> $GITHUB_ENV
           echo "BRANCH_NAME=${{ github.event.workflow_run.head_branch }}" >> $GITHUB_ENV
           echo "TRIGGERED_BY=${{ github.event.workflow_run.actor.login }}" >> $GITHUB_ENV
-
           echo "DEPLOYMENT_STATUS=SUCCESS" >> $GITHUB_ENV
 
-          # Populate these later from deploy.yml
-          echo "DEPLOYMENT_DURATION_SEC=" >> $GITHUB_ENV
-          echo "FRONTEND_BUILD_DURATION_SEC=" >> $GITHUB_ENV
-          echo "BACKEND_BUILD_DURATION_SEC=" >> $GITHUB_ENV
-          echo "FRONTEND_BUILD_SIZE_KB=" >> $GITHUB_ENV
-          echo "CONTAINERS_RUNNING=" >> $GITHUB_ENV
-          echo "HEALTH_CHECKS_TOTAL=" >> $GITHUB_ENV
-          echo "HEALTH_CHECKS_PASSED=" >> $GITHUB_ENV
-          echo "HEALTH_SUCCESS_RATE=" >> $GITHUB_ENV
+      # ----------------------------------------
+      # Export deployment metrics from JSON
+      # ----------------------------------------
 
-      # ----------------------------------------------------
+      - name: Export Benchmark Metrics
+        run: |
+          python - <<'PY'
+          import json
+          import os
+
+          with open("benchmarks/deployment_metrics.json","r") as f:
+              metrics = json.load(f)
+
+          with open(os.environ["GITHUB_ENV"],"a") as env:
+              env.write(f"DEPLOYMENT_DURATION_SEC={metrics.get('deployment_duration_sec','')}\n")
+              env.write(f"FRONTEND_BUILD_DURATION_SEC={metrics.get('frontend_build_duration_sec','')}\n")
+              env.write(f"BACKEND_BUILD_DURATION_SEC={metrics.get('backend_build_duration_sec','')}\n")
+              env.write(f"FRONTEND_BUILD_SIZE_KB={metrics.get('frontend_build_size_kb','')}\n")
+              env.write(f"CONTAINERS_RUNNING={metrics.get('containers_running','')}\n")
+              env.write(f"HEALTH_CHECKS_TOTAL={metrics.get('health_checks_total','')}\n")
+              env.write(f"HEALTH_CHECKS_PASSED={metrics.get('health_checks_passed','')}\n")
+              env.write(f"HEALTH_SUCCESS_RATE={metrics.get('health_success_rate','')}\n")
+          PY
+
+      # ----------------------------------------
       # Benchmark Engine
-      # ----------------------------------------------------
+      # ----------------------------------------
 
       - name: Initialize Benchmark Workspace
-        run: |
-          python benchmarks/engine/initialize.py
+        run: python benchmarks/engine/initialize.py
 
       - name: Append Deployment
-        run: |
-          python benchmarks/engine/append_deployment.py
+        run: python benchmarks/engine/append_deployment.py
 
       - name: Generate Statistics
-        run: |
-          python benchmarks/engine/generate_statistics.py
+        run: python benchmarks/engine/generate_statistics.py
 
       - name: Generate Benchmark Summary
-        run: |
-          python benchmarks/engine/generate_summary.py
+        run: python benchmarks/engine/generate_summary.py
 
-      # ----------------------------------------------------
-      # Commit benchmark artefacts
-      # ----------------------------------------------------
+      # ----------------------------------------
+      # Commit benchmark artifacts
+      # ----------------------------------------
 
       - name: Commit Benchmark Reports
         run: |
