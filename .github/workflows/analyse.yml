@@ -1,0 +1,69 @@
+name: Analyse Deployment
+
+on:
+  workflow_run:
+    workflows:
+      - CD - Deploy to AWS
+    types:
+      - completed
+
+permissions:
+  contents: write
+
+jobs:
+
+  analyse:
+
+    if: github.event.workflow_run.conclusion == 'success'
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Initialize Evidence
+        run: |
+          mkdir -p docs/evidence
+
+          if [ ! -f docs/evidence/deployment_history.csv ]; then
+            echo "timestamp,commit_sha,branch,triggered_by,status" > docs/evidence/deployment_history.csv
+          fi
+
+          if [ ! -f docs/evidence/deployment_statistics.json ]; then
+            echo "{}" > docs/evidence/deployment_statistics.json
+          fi
+
+          if [ ! -f docs/evidence/benchmark_summary.md ]; then
+            cat <<EOF > docs/evidence/benchmark_summary.md
+            # Deployment Benchmark Summary
+
+            No benchmark data available.
+            EOF
+          fi
+
+      - name: Append Deployment Record
+        run: |
+          echo "${{ github.event.workflow_run.updated_at }},${{ github.event.workflow_run.head_sha }},${{ github.event.workflow_run.head_branch }},${{ github.event.workflow_run.actor.login }},SUCCESS" >> docs/evidence/deployment_history.csv
+
+      - name: Commit Evidence
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+          git add docs/evidence
+
+          if git diff --cached --quiet; then
+            echo "No evidence changes."
+          else
+            git commit -m "docs(evidence): update deployment history [skip ci]"
+            git push
+          fi
