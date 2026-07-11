@@ -30,37 +30,64 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Initialize Evidence
+      # ----------------------------------------------------
+      # Export deployment information
+      # ----------------------------------------------------
+
+      - name: Export Benchmark Variables
         run: |
-          mkdir -p docs/evidence
+          echo "DEPLOYMENT_TIMESTAMP=${{ github.event.workflow_run.updated_at }}" >> $GITHUB_ENV
+          echo "COMMIT_SHA=${{ github.event.workflow_run.head_sha }}" >> $GITHUB_ENV
+          echo "BRANCH_NAME=${{ github.event.workflow_run.head_branch }}" >> $GITHUB_ENV
+          echo "TRIGGERED_BY=${{ github.event.workflow_run.actor.login }}" >> $GITHUB_ENV
 
-          if [ ! -f docs/evidence/deployment_history.csv ]; then
-            echo "timestamp,commit_sha,branch,status" > docs/evidence/deployment_history.csv
-          fi
+          echo "DEPLOYMENT_STATUS=SUCCESS" >> $GITHUB_ENV
 
-          if [ ! -f docs/evidence/deployment_statistics.json ]; then
-            echo "{}" > docs/evidence/deployment_statistics.json
-          fi
+          # Populate these later from deploy.yml
+          echo "DEPLOYMENT_DURATION_SEC=" >> $GITHUB_ENV
+          echo "FRONTEND_BUILD_DURATION_SEC=" >> $GITHUB_ENV
+          echo "BACKEND_BUILD_DURATION_SEC=" >> $GITHUB_ENV
+          echo "FRONTEND_BUILD_SIZE_KB=" >> $GITHUB_ENV
+          echo "CONTAINERS_RUNNING=" >> $GITHUB_ENV
+          echo "HEALTH_CHECKS_TOTAL=" >> $GITHUB_ENV
+          echo "HEALTH_CHECKS_PASSED=" >> $GITHUB_ENV
+          echo "HEALTH_SUCCESS_RATE=" >> $GITHUB_ENV
 
-          if [ ! -f docs/evidence/benchmark_summary.md ]; then
-            printf "# Deployment Benchmark Summary\n\nNo benchmark data available.\n" > docs/evidence/benchmark_summary.md
-          fi
+      # ----------------------------------------------------
+      # Benchmark Engine
+      # ----------------------------------------------------
 
-      - name: Append Deployment Record
+      - name: Initialize Benchmark Workspace
         run: |
-          echo "${{ github.event.workflow_run.updated_at }},${{ github.event.workflow_run.head_sha }},${{ github.event.workflow_run.head_branch }},SUCCESS" >> docs/evidence/deployment_history.csv
+          python benchmarks/engine/initialize.py
 
-      - name: Commit Evidence
+      - name: Append Deployment
+        run: |
+          python benchmarks/engine/append_deployment.py
+
+      - name: Generate Statistics
+        run: |
+          python benchmarks/engine/generate_statistics.py
+
+      - name: Generate Benchmark Summary
+        run: |
+          python benchmarks/engine/generate_summary.py
+
+      # ----------------------------------------------------
+      # Commit benchmark artefacts
+      # ----------------------------------------------------
+
+      - name: Commit Benchmark Reports
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git add docs/evidence
+          git add benchmarks
 
           if git diff --cached --quiet; then
-            echo "No evidence changes."
+            echo "No benchmark changes."
             exit 0
           fi
 
-          git commit -m "docs(evidence): update deployment history [skip ci]"
+          git commit -m "benchmarks: update deployment reports [skip ci]"
           git push

@@ -7,6 +7,7 @@ import time
 from typing import Set
 
 from shared.events.cost_insight_generated_v1 import CostInsightGeneratedEvent
+from shared.observability.metrics import (start_timer,stop_timer,)
 from app.graph.graph_builder import build_graph
 
 logger = logging.getLogger(__name__)
@@ -104,7 +105,7 @@ class IntelligenceConsumer:
     async def handle_message(self, body: dict):
 
         try:
-            pipeline_start = time.perf_counter()
+            pipeline_timer = start_timer()
             original_event = body["original_event"]
             payload = original_event["payload"]
 
@@ -126,7 +127,7 @@ class IntelligenceConsumer:
                 anomaly_type = "low_usage"
 
             print(f"🧠 Classified Pattern → {anomaly_type}")
-            graph_start = time.perf_counter()
+            graph_timer = start_timer()
 
             result = await self.graph.ainvoke({
                 "account_id": account_id,
@@ -138,9 +139,9 @@ class IntelligenceConsumer:
                 "severity": body.get("severity", "LOW"),
             })
 
-            graph_ms = (
-                time.perf_counter() - graph_start
-            ) * 1000
+            graph_ms = stop_timer(
+                graph_timer
+            )
 
             explanation = result.get("explanation")
             root_cause = result.get("root_cause")
@@ -182,9 +183,8 @@ class IntelligenceConsumer:
             )
             
 
-            pipeline_ms = (
-                time.perf_counter() - pipeline_start
-            ) * 1000
+            pipeline_ms = stop_timer(pipeline_timer)
+            
             print("\n📈 Intelligence Metrics")
             print(f"🧠 Graph Execution : {graph_ms:.2f} ms")
             print(f"⚡ Total Intelligence Pipeline : {pipeline_ms:.2f} ms")

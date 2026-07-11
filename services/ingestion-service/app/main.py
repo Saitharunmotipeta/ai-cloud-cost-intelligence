@@ -8,10 +8,14 @@ from shared.events.cost_data_ingested_v1 import (
     CostDataIngestedEvent,
     CostDataIngestedPayload,
 )
+from shared.observability.metrics import (
+    start_timer,
+    stop_timer,
+    record_metric,
+)
 from .core.broker import get_broker
 from shared.observability.logging import configure_logging
 import logging
-import time
 
 app = FastAPI(title="Ingestion Service")
 
@@ -39,7 +43,7 @@ async def ingest_cost(
     """
 
     # 🔥 Validate UUID
-    total_start = time.perf_counter()
+    processing_timer = start_timer()
     try:
         account_id = str(UUID(x_account_id))
     except:
@@ -57,18 +61,31 @@ async def ingest_cost(
         payload=payload,
     )
 
-    publish_start = time.perf_counter()
+   # --------------------------------------------------
+    # Record ingestion processing time
+    # --------------------------------------------------
 
-    await broker.publish(STREAM_NAME, event)
+    processing_ms = stop_timer(processing_timer)
 
-    publish_ms = (
-        time.perf_counter() - publish_start
-    ) * 1000
+    record_metric(
+        event=event,
+        service="ingestion",
+        metric="request_processing_ms",
+        value=processing_ms,
+    )
 
-    total_ms = (
-        time.perf_counter() - total_start
-    ) * 1000
+    # --------------------------------------------------
+    # Publish Event
+    # --------------------------------------------------
 
+    publish_timer = start_timer()
+
+    await broker.publish(
+        STREAM_NAME,
+        event,
+    )
+
+    publish_ms = stop_timer(publish_timer)
     logger.info(
         "Published cost_data_ingested_v1",
         extra={
@@ -77,8 +94,8 @@ async def ingest_cost(
             "correlation_id": event.correlation_id,
             "account_id": account_id,   # 🔥 ADD THIS
             "stream": STREAM_NAME,
-            "broker_publish_ms": round(publish_ms, 2),
-            "ingestion_total_ms": round(total_ms, 2),
+            "request_processing_ms": processing_ms,
+            "broker_publish_ms": publish_ms,
         },
     )
 
@@ -87,8 +104,8 @@ async def ingest_cost(
         "event_id": event.event_id,
         "account_id": account_id,  
         "metrics": {
-            "broker_publish_ms": round(publish_ms, 2),
-            "ingestion_total_ms": round(total_ms, 2)
+            "request_processing_ms": processing_ms,
+            "broker_publish_ms": publish_ms,
         }
     }
 

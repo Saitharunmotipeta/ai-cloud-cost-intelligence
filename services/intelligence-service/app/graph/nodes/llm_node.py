@@ -1,6 +1,11 @@
 from app.domain.llm_explainer import LLMExplainer
 import time
 
+from shared.observability.metrics import (
+    start_timer,
+    stop_timer,
+)
+
 
 def llm_node(state):
 
@@ -12,7 +17,7 @@ def llm_node(state):
     for attempt in range(max_retries + 1):
         try:
             llm = LLMExplainer()
-            llm_start = time.perf_counter()
+            llm_timer = start_timer()
 
             result = llm.generate_explanation(
                 service=state["service"],
@@ -27,9 +32,9 @@ def llm_node(state):
                 context=state.get("context", []),
             )
 
-            llm_ms = (
-                time.perf_counter() - llm_start
-            ) * 1000
+            llm_ms = stop_timer(
+                llm_timer
+            )
 
             print(f"🤖 LLM Reasoning Time : {llm_ms:.2f} ms")
 
@@ -63,7 +68,7 @@ def llm_node(state):
                 "root_cause": root_cause,
                 "confidence": confidence or "medium",
                 "severity": state.get("severity"),
-                "llm_reasoning_ms": round(llm_ms, 2),
+                "llm_reasoning_ms": llm_ms,
             }
 
         except Exception as e:

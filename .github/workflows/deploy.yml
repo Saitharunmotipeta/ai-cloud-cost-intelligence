@@ -788,6 +788,45 @@ jobs:
           git pull --rebase origin main
 
           git push origin main
+
+  collect-benchmark-metrics:
+    name: Collect Benchmark Metrics
+
+    runs-on: ubuntu-latest
+
+    needs:
+      - deployment-gate
+      - deploy-frontend
+      - deploy-backend
+      - health-verification
+      # add your health-check job here if you have one
+
+    steps:
+
+      - name: Create benchmark metrics
+        run: |
+          END_EPOCH=$(date +%s)
+
+          DEPLOYMENT_DURATION=$((END_EPOCH - ${{ needs.deployment-gate.outputs.start_epoch }}))
+
+          mkdir -p benchmarks
+
+          cat > benchmarks/deployment_metrics.json <<EOF
+          {
+            "deployment_duration_sec": ${DEPLOYMENT_DURATION},
+            "frontend_build_size_kb": "${{ needs.deploy-frontend.outputs.build_size }}",
+            "containers_running": "${{ needs.deploy-backend.outputs.container_running }}",
+            "health_checks_total": "${{ needs.health-verification.outputs.endpoints_tested }}",
+            "health_checks_passed": "${{ needs.health-verification.outputs.endpoints_passed }}",
+            "health_success_rate": "${{ needs.health-verification.outputs.health_success_rate }}"
+          }
+          EOF
+
+      - name: Upload Benchmark Metrics
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-metrics
+          path: benchmarks/deployment_metrics.json
       
   deployment-success:
     name: Deployment Success

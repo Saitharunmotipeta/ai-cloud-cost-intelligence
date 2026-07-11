@@ -1,7 +1,10 @@
 import boto3
 import json
 import os
-import time
+from shared.observability.metrics import (
+    start_timer,
+    stop_timer,
+)
 
 sqs = boto3.client(
     "sqs",
@@ -15,8 +18,8 @@ def poll_messages():
     print("🚀 Analytics consumer started...")
 
     while True:
-        loop_start = time.perf_counter()
-        receive_start = time.perf_counter()
+        loop_timer = start_timer()
+        receive_timer = start_timer()
 
         response = sqs.receive_message(
             QueueUrl=QUEUE_URL,
@@ -24,9 +27,7 @@ def poll_messages():
             WaitTimeSeconds=10
         )
 
-        receive_ms = (
-            time.perf_counter() - receive_start
-        ) * 1000
+        receive_ms = stop_timer(receive_timer)
 
         messages = response.get("Messages", [])
 
@@ -41,15 +42,13 @@ def poll_messages():
 
             # 🔥 For now just log it (no processing yet)
 
-            processing_start = time.perf_counter()
+            processing_timer = start_timer()
 
             # anomaly detection
             # publish next event
             # any future processing
 
-            processing_ms = (
-                time.perf_counter() - processing_start
-            ) * 1000
+            processing_ms = stop_timer(processing_timer)
 
             print(
                 f"📊 Processing Time : {processing_ms:.2f} ms"
@@ -59,12 +58,8 @@ def poll_messages():
                 ReceiptHandle=msg["ReceiptHandle"]
             )
 
-        loop_ms = (
-            time.perf_counter() - loop_start
-                ) * 1000
+        loop_ms = stop_timer(loop_timer)
 
         print(
             f"⏱ Analytics Loop : {loop_ms:.2f} ms"
         )
-
-        time.sleep(2)

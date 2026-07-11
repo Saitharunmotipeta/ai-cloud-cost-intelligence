@@ -1,6 +1,5 @@
 import app.domain.mock_data as mock_data
-import time
-
+from shared.observability.metrics import (start_timer,stop_timer,)
 
 def context_node(state):
 
@@ -19,7 +18,7 @@ def context_node(state):
 
     anomaly_type = state.get("anomaly_type", "unknown")
 
-    retrieval_start = time.perf_counter()
+    retrieval_timer = start_timer()
 
     # 🔥 FIX: use mock_db correctly
     results = [
@@ -29,9 +28,9 @@ def context_node(state):
 
     final_context = results if results else mock_data.mock_db[:2]
 
-    retrieval_ms = (
-        time.perf_counter() - retrieval_start
-    ) * 1000
+    retrieval_ms = stop_timer(
+        retrieval_timer
+    )
 
     print("\n🔍 DEBUG → Pattern:", anomaly_type)
     print("🔍 DEBUG → Available Patterns:", [r.get("pattern") for r in mock_data.mock_db])

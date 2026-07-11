@@ -59,6 +59,30 @@ class BaseEvent(BaseModel):
         """
         self.retry_count += 1
 
+        # ------------------------------------------------------------------
+    # Observability helpers
+    # ------------------------------------------------------------------
+
+    def record_metric(
+        self,
+        key: str,
+        value: Any
+    ) -> None:
+        """
+        Record a runtime metric inside the event metadata.
+
+        Metrics are propagated across services as part of the event,
+        allowing end-to-end performance tracking.
+        """
+
+        if self.metadata is None:
+            self.metadata = {}
+
+        if "metrics" not in self.metadata:
+            self.metadata["metrics"] = {}
+
+        self.metadata["metrics"][key] = value
+
     # ------------------------------------------------------------------
     # Serialization helpers
     # ------------------------------------------------------------------
