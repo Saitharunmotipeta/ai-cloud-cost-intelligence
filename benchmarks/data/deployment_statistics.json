@@ -1,1 +1,7 @@
-{}
+{
+    "deployment_count": 1,
+    "successful_deployments": 1,
+    "failed_deployments": 0,
+    "success_rate": 100.0,
+    "metrics": {}
+}
