@@ -161,11 +161,14 @@ jobs:
           ssh \
             -i ~/.ssh/ec2_key.pem \
             "$EC2_HOST" \
-            "cd '$REMOTE_PROJECT_DIR' && \
-             git pull origin main && \
-             cd infrastructure/docker && \
-             docker-compose up -d --build && \
-             docker-compose ps"
+            "set -e && \
+            cd '$REMOTE_PROJECT_DIR' && \
+            git pull origin main && \
+            cd infrastructure/docker && \
+            docker-compose down --remove-orphans && \
+            docker image prune -f && \
+            docker-compose up -d --build && \
+            docker-compose ps"
 
       - name: Capture Docker metrics
         id: backend-metrics
