@@ -168,7 +168,12 @@ jobs:
             echo '========== BUILD ==========' && \
             docker-compose build && \
             echo '========== START ==========' && \
-            docker-compose up -d && \
+            docker-compose up -d || { \
+              echo '========== RECOVERY =========='; \
+              echo 'ContainerConfig bug detected. Recovering...'; \
+              docker-compose down --remove-orphans; \
+              docker-compose up -d; \
+            } && \
             echo '========== CONTAINERS ==========' && \
             docker-compose ps && \
             echo '========== CLEANUP ==========' && \
