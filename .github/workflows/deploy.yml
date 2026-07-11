@@ -161,14 +161,18 @@ jobs:
           ssh \
             -i ~/.ssh/ec2_key.pem \
             "$EC2_HOST" \
-            "set -e && \
+            "set -euxo pipefail && \
             cd '$REMOTE_PROJECT_DIR' && \
             git pull origin main && \
             cd infrastructure/docker && \
-            docker-compose down --remove-orphans && \
-            docker image prune -f && \
-            docker-compose up -d --build && \
-            docker-compose ps"
+            echo '========== BUILD ==========' && \
+            docker-compose build && \
+            echo '========== START ==========' && \
+            docker-compose up -d && \
+            echo '========== CONTAINERS ==========' && \
+            docker-compose ps && \
+            echo '========== CLEANUP ==========' && \
+            docker image prune -f"
 
       - name: Capture Docker metrics
         id: backend-metrics
