@@ -1,0 +1,8 @@
+{
+  "deployment_duration_sec": 145,
+  "frontend_build_size_kb": "860K",
+  "containers_running": "4",
+  "health_checks_total": "2",
+  "health_checks_passed": "2",
+  "health_success_rate": "100"
+}
