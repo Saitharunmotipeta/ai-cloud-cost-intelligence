@@ -56,6 +56,7 @@ jobs:
     outputs:
       file_count: ${{ steps.frontend-metrics.outputs.file_count }}
       build_size: ${{ steps.frontend-metrics.outputs.build_size }}
+      build_duration: ${{ steps.frontend-metrics.outputs.frontend_build_duration_sec }}
 
     steps:
       - name: Download frontend artifact from CI
@@ -83,20 +84,34 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         working-directory: frontend
         run: |
+          START=$(date +%s)
+
           npm ci
           npm run build
+
+          END=$(date +%s)
+
+          echo "FRONTEND_BUILD_DURATION_SEC=$((END-START))" >> $GITHUB_ENV
 
       - name: Capture frontend metrics
         id: frontend-metrics
         run: |
           FILE_COUNT=$(find frontend/dist -type f | wc -l)
-          BUILD_SIZE=$(du -sh frontend/dist | cut -f1)
+
+          BUILD_SIZE=$(du -sk frontend/dist | cut -f1)
 
           echo "file_count=$FILE_COUNT" >> "$GITHUB_OUTPUT"
           echo "build_size=$BUILD_SIZE" >> "$GITHUB_OUTPUT"
 
-          echo "Frontend files: $FILE_COUNT"
-          echo "Frontend build size: $BUILD_SIZE"
+          if [ -z "${FRONTEND_BUILD_DURATION_SEC:-}" ]; then
+            FRONTEND_BUILD_DURATION_SEC="N/A"
+          fi
+
+          echo "frontend_build_duration_sec=$FRONTEND_BUILD_DURATION_SEC" >> "$GITHUB_OUTPUT"
+
+          echo "Frontend files : $FILE_COUNT"
+          echo "Frontend size  : ${BUILD_SIZE} KB"
+          echo "Frontend build : $FRONTEND_BUILD_DURATION_SEC sec"
 
       - name: Configure AWS credentials using OIDC
         uses: aws-actions/configure-aws-credentials@v6
@@ -131,6 +146,7 @@ jobs:
     outputs:
       container_total: ${{ steps.backend-metrics.outputs.container_total }}
       container_running: ${{ steps.backend-metrics.outputs.container_running }}
+      build_duration: ${{ steps.backend-metrics.outputs.backend_build_duration_sec }}
 
     steps:
       - name: Configure SSH private key
@@ -158,6 +174,7 @@ jobs:
           EC2_HOST: ${{ secrets.EC2_HOST }}
           REMOTE_PROJECT_DIR: ${{ vars.REMOTE_PROJECT_DIR }}
         run: |
+          START=$(date +%s)
           ssh \
             -i ~/.ssh/ec2_key.pem \
             "$EC2_HOST" \
@@ -178,6 +195,9 @@ jobs:
             docker-compose ps && \
             echo '========== CLEANUP ==========' && \
             docker image prune -f"
+            END=$(date +%s)
+            echo "BACKEND_BUILD_DURATION_SEC=$((END-START))" >> "$GITHUB_ENV"
+            echo "Backend deployment completed in $((END-START)) seconds"
 
       - name: Capture Docker metrics
         id: backend-metrics
@@ -198,9 +218,11 @@ jobs:
 
           echo "container_total=$CONTAINER_TOTAL" >> "$GITHUB_OUTPUT"
           echo "container_running=$CONTAINER_RUNNING" >> "$GITHUB_OUTPUT"
+          echo "backend_build_duration_sec=$BACKEND_BUILD_DURATION_SEC" >> "$GITHUB_OUTPUT"
 
           echo "Docker containers total: $CONTAINER_TOTAL"
           echo "Docker containers running: $CONTAINER_RUNNING"
+          echo "Backend build duration: ${BACKEND_BUILD_DURATION_SEC} sec"
 
   health-verification:
     name: Verify Service Health
@@ -402,6 +424,10 @@ jobs:
 
           FRONTEND_RESULT: ${{ needs.deploy-frontend.result }}
           BACKEND_RESULT: ${{ needs.deploy-backend.result }}
+
+          FRONTEND_BUILD_DURATION_SEC: ${{ needs.deploy-frontend.outputs.build_duration }}
+          BACKEND_BUILD_DURATION_SEC: ${{ needs.deploy-backend.outputs.build_duration }}
+
           HEALTH_RESULT: ${{ needs.health-verification.result }}
 
           FILE_COUNT: ${{ needs.deploy-frontend.outputs.file_count }}
@@ -445,6 +471,7 @@ jobs:
           fi
 
           echo "status=$STATUS" >> "$GITHUB_OUTPUT"
+          echo "DEPLOYMENT_DURATION_SEC=$DURATION" >> "$GITHUB_ENV"
 
           cat > deployment-report.html <<EOF
           <!DOCTYPE html>
@@ -521,6 +548,15 @@ jobs:
                   <tr>
                     <td><strong>Frontend Build Size</strong></td>
                     <td>${BUILD_SIZE:-N/A}</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Frontend Build Time</strong></td>
+                    <td>${FRONTEND_BUILD_DURATION_SEC:-N/A} sec</td>
+                  </tr>
+
+                  <tr>
+                    <td><strong>Backend Build Time</strong></td>
+                    <td>${BACKEND_BUILD_DURATION_SEC:-N/A} sec</td>
                   </tr>
                   <tr>
                     <td><strong>Docker Containers Running</strong></td>
@@ -631,7 +667,39 @@ jobs:
           </body>
           </html>
           EOF
+      
+      - name: Generate Benchmark Artifact
+        env:
+          DEPLOYMENT_DURATION_SEC: ${{ env.DEPLOYMENT_DURATION_SEC }}
+          FRONTEND_BUILD_DURATION_SEC: ${{ needs.deploy-frontend.outputs.build_duration }}
+          BACKEND_BUILD_DURATION_SEC: ${{ needs.deploy-backend.outputs.build_duration }}
+          BUILD_SIZE: ${{ needs.deploy-frontend.outputs.build_size }}
+          CONTAINER_RUNNING: ${{ needs.deploy-backend.outputs.container_running }}
+          ENDPOINTS_TESTED: ${{ needs.health-verification.outputs.endpoints_tested }}
+          ENDPOINTS_PASSED: ${{ needs.health-verification.outputs.endpoints_passed }}
+          HEALTH_SUCCESS_RATE: ${{ needs.health-verification.outputs.health_success_rate }}
+        run: |
+          mkdir -p benchmarks
 
+          cat > benchmarks/deployment_metrics.json <<EOF
+          {
+            "deployment_duration_sec": "${DEPLOYMENT_DURATION_SEC}",
+            "frontend_build_duration_sec": "${FRONTEND_BUILD_DURATION_SEC}",
+            "backend_build_duration_sec": "${BACKEND_BUILD_DURATION_SEC}",
+            "frontend_build_size_kb": "${BUILD_SIZE}",
+            "containers_running": "${CONTAINER_RUNNING}",
+            "health_checks_total": "${ENDPOINTS_TESTED}",
+            "health_checks_passed": "${ENDPOINTS_PASSED}",
+            "health_success_rate": "${HEALTH_SUCCESS_RATE}"
+          }
+          EOF
+
+      - name: Upload Benchmark Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-metrics
+          path: benchmarks/deployment_metrics.json
+          
       - name: Send deployment email through Amazon SES
         env:
           SES_FROM_EMAIL: ${{ vars.SES_FROM_EMAIL }}
@@ -794,45 +862,6 @@ jobs:
 
           git push origin main
 
-  collect-benchmark-metrics:
-    name: Collect Benchmark Metrics
-
-    runs-on: ubuntu-latest
-
-    needs:
-      - deployment-gate
-      - deploy-frontend
-      - deploy-backend
-      - health-verification
-      # add your health-check job here if you have one
-
-    steps:
-
-      - name: Create benchmark metrics
-        run: |
-          END_EPOCH=$(date +%s)
-
-          DEPLOYMENT_DURATION=$((END_EPOCH - ${{ needs.deployment-gate.outputs.start_epoch }}))
-
-          mkdir -p benchmarks
-
-          cat > benchmarks/deployment_metrics.json <<EOF
-          {
-            "deployment_duration_sec": ${DEPLOYMENT_DURATION},
-            "frontend_build_size_kb": "${{ needs.deploy-frontend.outputs.build_size }}",
-            "containers_running": "${{ needs.deploy-backend.outputs.container_running }}",
-            "health_checks_total": "${{ needs.health-verification.outputs.endpoints_tested }}",
-            "health_checks_passed": "${{ needs.health-verification.outputs.endpoints_passed }}",
-            "health_success_rate": "${{ needs.health-verification.outputs.health_success_rate }}"
-          }
-          EOF
-
-      - name: Upload Benchmark Metrics
-        uses: actions/upload-artifact@v4
-        with:
-          name: deployment-metrics
-          path: benchmarks/deployment_metrics.json
-      
   deployment-success:
     name: Deployment Success
     runs-on: ubuntu-latest
