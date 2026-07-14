@@ -1,3 +1,4 @@
 benchmark_run_id,timestamp,commit_sha,branch,triggered_by,deployment_duration_sec,frontend_build_duration_sec,backend_build_duration_sec,frontend_build_size_kb,containers_running,health_checks_total,health_checks_passed,health_success_rate,ingestion_request_processing_ms,analytics_queue_receive_ms,analytics_processing_ms,analytics_consumer_loop_ms,context_retrieval_ms,llm_reasoning_ms,graph_execution_ms,pipeline_processing_ms,database_insert_ms,graphql_query_execution_ms,total_ai_pipeline_ms,deployment_status
 BM-20260711-414BAE,2026-07-11T20:39:21Z,7060e755f8c6f723d6785ae7160c610cb1d77bb6,main,Saitharunmotipeta,,,,,,,,,,,,,,,,,,,,SUCCESS
 BM-20260711-5FF38B,2026-07-11T21:01:09Z,dc174a0208a2ee4722aeedf49f13cc3454fdfe18,main,Saitharunmotipeta,145,,,860K,4,2,2,100,,,,,,,,,,,,SUCCESS
+BM-20260714-D699EA,2026-07-14T18:28:13Z,5890858a78309140b422371f0e44b840109545be,main,Saitharunmotipeta,380,N/A,122,860,4,2,2,100,,,,,,,,,,,,SUCCESS
