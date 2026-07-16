@@ -1,169 +1,345 @@
 # AI Cloud Cost Intelligence Engine
 
-Event-driven, serverless-ready AI Cloud Cost Intelligence platform designed to detect cloud cost anomalies and generate intelligent optimization insights using machine learning and LLM reasoning.
+An AI-powered cloud cost intelligence platform that transforms cloud usage events into actionable cost optimization insights using an event-driven microservices architecture.
 
-Built with:
-
-* FastAPI (microservices architecture)
-* Redis Streams (local messaging)
-* AWS SQS (cloud phase)
-* PostgreSQL (Database)
-* scikit-learn (anomaly detection)
-* LangChain + LangGraph (AI reasoning)
-* Docker (local orchestration)
-* Serverless-ready design (Lambda-compatible)
+The platform combines FastAPI microservices, GraphQL, LangGraph, OpenRouter, AWS cloud services, Docker, and GitHub Actions to simulate a modern cloud-native FinOps solution with automated deployment, monitoring, and benchmarking.
 
 ---
 
-## Architecture Overview
+## Table of Contents
 
-This system follows a strict event-driven microservices architecture.
-
-Core domain event flow:
-
-cost_data_ingested_v1
-↓
-cost_data_ready_for_analysis_v1
-↓
-cost_anomaly_detected_v1
-↓
-cost_insight_generated_v1
-
-All services communicate exclusively through events.
-No service-to-service REST calls are allowed.
-
-Delivery model:
-
-* At-least-once delivery
-* Idempotent consumers
-* Dead-letter ready
-* 15-minute SLA window for AI insights
+- Project Overview
+- Problem Statement
+- Key Features
+- System Architecture
+- Technology Stack
+- Project Workflow
+- Event-Driven Architecture
+- AI Reasoning Pipeline
+- CI/CD Pipeline
+- Deployment & Monitoring
+- Screenshots
+- Project Structure
+- Running the Project
+- Future Enhancements
+- Author
 
 ---
 
-## Services
+# Project Overview
 
-### ingestion-service
+Cloud platforms generate a massive amount of usage and billing data every day. Raw billing information alone provides very little business value unless it is processed, analyzed, and converted into meaningful recommendations.
 
-Receives or simulates cloud usage data and emits initial cost events.
+The AI Cloud Cost Intelligence Engine demonstrates how an event-driven cloud-native system can automate this process.
 
-### analytics-service
+Instead of processing requests synchronously, services communicate using asynchronous events, allowing the platform to scale while remaining loosely coupled.
 
-Processes normalized metrics and detects anomalies using ML models.
-
-### intelligence-service (Phase 3)
-
-Generates AI-powered explanations and optimization recommendations.
-
-### notification-service (Phase 4)
-
-Reacts to insight events and logs notification delivery.
-
-### api-gateway (Phase 5)
-
-Provides REST and GraphQL access for querying anomalies and insights.
+The project combines modern backend engineering practices with AI-powered reasoning to generate cloud cost optimization recommendations.
 
 ---
 
-## Repository Structure
+# Problem Statement
 
-services/
+Organizations often know **how much** they spend in the cloud but struggle to understand **why** costs increase and **how** to optimize them.
+
+This project demonstrates how AI and distributed systems can work together to:
+
+- Collect cloud cost events
+- Process usage asynchronously
+- Generate intelligent recommendations
+- Store processed insights
+- Expose insights through GraphQL
+- Automate deployment and monitoring
+
+---
+
+# Key Features
+
+- Event-Driven Microservices Architecture
+- GraphQL API Gateway
+- AI-Powered Cloud Cost Recommendations
+- LangGraph Multi-Step AI Workflow
+- OpenRouter LLM Integration
+- AWS Lambda Based AI Processing
+- Amazon SQS Message Queue
+- Dockerized Microservices
+- GitHub Actions CI/CD Pipeline
+- Automated Deployment Validation
+- Deployment Benchmark Engine
+- AWS Cloud Deployment
+- GraphQL API
+- Cloud Cost Analytics Dashboard
+
+---
+
+# System Architecture
+
+## Overall AWS Architecture
+
+![AWS Architecture](assets/architecture/aws-overall-architecture.png)
+
+---
+
+## Backend Architecture
+
+![Backend Architecture](assets/architecture/backend-system-architecture.png)
+
+---
+
+## AI Reasoning Pipeline
+
+![AI Pipeline](assets/architecture/ai-reasoning-pipeline.png)
+
+---
+
+## CI/CD Pipeline
+
+![CI/CD Pipeline](assets/architecture/ci-cd-pipeline.png)
+
+---
+
+## Deployment Monitoring & Benchmarking
+
+![Deployment Monitoring](assets/architecture/deployment-monitoring-benchmarking.png)
+
+---
+
+# Technology Stack
+
+| Layer | Technologies |
+|--------|--------------|
+| Frontend | React, JavaScript |
+| Backend | FastAPI |
+| API Gateway | GraphQL (Strawberry GraphQL) |
+| Database | PostgreSQL (Supabase) |
+| Event Messaging | Amazon SQS |
+| AI Framework | LangGraph, LangChain |
+| LLM | OpenRouter |
+| Cloud | AWS EC2, S3, CloudFront, Lambda |
+| DevOps | Docker, GitHub Actions |
+| Monitoring | CloudWatch |
+| Email | Amazon SES |
+
+---
+
+# Project Workflow
+
+The platform processes cloud cost events through multiple distributed services.
+
+1. A cloud cost event is received by the Ingestion Service.
+2. The event is published to Amazon SQS.
+3. Analytics Service consumes the event.
+4. Intelligence Service retrieves contextual information.
+5. LangGraph orchestrates the AI reasoning workflow.
+6. OpenRouter generates optimization recommendations.
+7. Storage Service persists processed insights.
+8. GraphQL Gateway exposes the data.
+9. The React dashboard displays insights to users.
+
+---
+
+# Event-Driven Architecture
+
+The system follows an asynchronous event-driven architecture.
+
+Instead of tightly coupling services together, events are exchanged through Amazon SQS.
+
+Benefits include:
+
+- Loose coupling
+- Independent service scaling
+- Improved fault tolerance
+- Better reliability
+- Easier future service expansion
+
+Current services:
+
+- GraphQL Gateway
+- Ingestion Service
+- Analytics Service
+- Intelligence Service
+- Storage Service
+
+---
+
+# AI Reasoning Pipeline
+
+The Intelligence Service performs AI-assisted cloud cost analysis using LangGraph.
+
+The workflow consists of:
+
+- Context Retrieval
+- Prompt Construction
+- LangGraph Execution
+- OpenRouter LLM Reasoning
+- Recommendation Generation
+- Insight Storage
+
+This separation allows the AI workflow to remain modular and extensible for future reasoning strategies.
+
+---
+
+# CI/CD Pipeline
+
+Deployment is fully automated using GitHub Actions.
+
+The pipeline performs:
+
+- Source checkout
+- Dependency installation
+- Docker image build
+- Backend deployment to EC2
+- Frontend deployment to Amazon S3
+- CloudFront delivery
+- Health verification
+- Deployment report generation
+- Deployment benchmark generation
+- Email notification through Amazon SES
+
+---
+
+# Deployment & Monitoring
+
+The project includes a lightweight deployment benchmark engine that records deployment metadata after every successful release.
+
+Recorded metrics include:
+
+- Deployment Duration
+- Backend Build Duration
+- Frontend Build Size
+- Running Containers
+- Health Check Success Rate
+
+Deployment history is automatically stored for future analysis.
+
+---
+
+# Screenshots
+
+## Dashboard Overview
+
+### Metrics Dashboard
+
+![Dashboard Metrics](assets/screenshots/application/dashboard-overview-metrics.png)
+
+---
+
+### Analytics Dashboard
+
+![Dashboard Analytics](assets/screenshots/application/dashboard-overview-analytics.png)
+
+---
+
+### Cost Insights
+
+![Cost Insights](assets/screenshots/application/cost-insights.png)
+
+---
+
+### Anomaly Detection
+
+![Anomalies](assets/screenshots/application/anomalies-dashboard.png)
+
+---
+
+### GraphQL Playground
+
+![GraphQL Playground](assets/screenshots/application/graphql-playground.png)
+
+---
+
+## AWS Deployment
+
+### EC2 Instance
+
+![EC2](assets/screenshots/aws/ec2-instance.png)
+
+### Amazon S3
+
+![S3](assets/screenshots/aws/s3-bucket.png)
+
+### CloudFront
+
+![CloudFront](assets/screenshots/aws/cloudfront-distribution.png)
+
+### API Gateway
+
+![API Gateway](assets/screenshots/aws/api-gateway.png)
+
+### Amazon SQS
+
+![SQS](assets/screenshots/aws/sqs-queue.png)
+
+### AWS Lambda
+
+![Lambda](assets/screenshots/aws/lambda-function.png)
+
+---
+
+# Project Structure
+
+```text
+frontend/
+backend/
 shared/
 infrastructure/
-scripts/
-
-Shared contains:
-
-* Event contracts
-* Broker abstraction
-* Database base configuration
-* Observability utilities
-
-Each service:
-
-* Runs independently
-* Has its own Dockerfile
-* Is serverless-migration ready
+benchmarks/
+assets/
+.github/
+```
 
 ---
 
-## Phase 1 – Event Backbone
+# Running the Project
 
-Current focus:
+```bash
+git clone <repository-url>
 
-* Redis Streams broker
-* Base event contract
-* Ingestion publishes dummy event
-* Analytics consumes and republishes
-* Dockerized local environment
+cd ai-cloud-cost-intelligence
 
-Goal: Validate event-driven spine before adding ML or LLM complexity.
+docker-compose up --build
+```
 
----
+Frontend
 
-## Design Principles
+```
+http://localhost:3000
+```
 
-* Event-first architecture
-* Strict service boundaries
-* Broker abstraction for Redis → SQS migration
-* No overengineering
-* Production-style structured logging
-* Cloud-native discipline
-* Stateless service design
+GraphQL
+
+```
+http://localhost:8000/graphql
+```
 
 ---
 
-## Local Development
+# Future Enhancements
 
-Requirements:
-
-* Docker
-* Docker Compose
-
-Run:
-
-docker-compose up --no-cache --build
-
-This will start:
-
-* Redis
-* ingestion-service
-* analytics-service
-
-You should observe event flow in service logs.
+- Kubernetes Deployment
+- Multi-Cloud Support
+- Cost Forecasting
+- FinOps Dashboard
+- Real-Time Alerts
+- Authentication & RBAC
+- Multi-Tenant Support
+- Distributed Tracing
+- OpenTelemetry Integration
 
 ---
 
-## Roadmap
+# Author
 
-Phase 1 – Event plumbing
-Phase 2 – Database + anomaly detection
-Phase 3 – LLM intelligence layer
-Phase 4 – Notification service
-Phase 5 – GraphQL gateway
-Phase 6 – Cloud readiness (SQS, Lambda, Terraform)
+**Sai Tharun**
 
----
+B.Tech Information Technology
 
-## Delivery Guarantees
+MVSR Engineering College
 
-* At-least-once event delivery
-* Idempotent event consumers
-* Configurable SLA window (default 15 minutes)
-* Dead-letter support in cloud phase
+GitHub: https://github.com/Saitharunmotipeta
 
 ---
 
-## Status
+## License
 
-Under active development.
-Phase 1: Event backbone implementation. (Completed)
-Phase 2: AI orchestration layer for reasoning. (Completed)
-phase 3: Storage and Graphql services. (Completed)
-phase 4: Frontend interface. (Completed)
-phase 5: Cloud Architecture setup (Completed)
-phase 6: Polish and delievery phase (In Progress)
-
-update will go on soon ..
-
----
+This project is developed for educational and portfolio purposes.
