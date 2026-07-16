@@ -357,12 +357,10 @@ http://localhost:8000/graphql
 
 B.Tech Information Technology
 
-MVSR Engineering College
-
 GitHub: https://github.com/Saitharunmotipeta
 
 ---
 
 ## License
 
-This project is developed for educational and portfolio purposes.
+This project is developed as an Proof of concepts and portfolio purposes.
