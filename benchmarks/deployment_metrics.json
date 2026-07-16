@@ -1,7 +1,7 @@
 {
-  "deployment_duration_sec": "157",
+  "deployment_duration_sec": "53",
   "frontend_build_duration_sec": "N/A",
-  "backend_build_duration_sec": "118",
+  "backend_build_duration_sec": "21",
   "frontend_build_size_kb": "860",
   "containers_running": "4",
   "health_checks_total": "2",
