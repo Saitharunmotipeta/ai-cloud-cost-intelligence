@@ -2,8 +2,8 @@
 
 ## Deployment Benchmark Report
 
-**Deployments :** 3
-**Successful :** 3
+**Deployments :** 4
+**Successful :** 4
 **Failed :** 0
 **Success Rate :** 100.0%
 
@@ -13,23 +13,23 @@
 
 ### Deployment Duration (Sec)
 
-- Samples : 2
-- Average : 262.5
-- Median : 262.5
+- Samples : 3
+- Average : 227.33
+- Median : 157.0
 - Minimum : 145.0
 - Maximum : 380.0
 
 ### Backend Build Duration (Sec)
 
-- Samples : 1
-- Average : 122.0
-- Median : 122.0
-- Minimum : 122.0
+- Samples : 2
+- Average : 120.0
+- Median : 120.0
+- Minimum : 118.0
 - Maximum : 122.0
 
 ### Frontend Build Size (Kb)
 
-- Samples : 1
+- Samples : 2
 - Average : 860.0
 - Median : 860.0
 - Minimum : 860.0
@@ -37,7 +37,7 @@
 
 ### Containers Running
 
-- Samples : 2
+- Samples : 3
 - Average : 4.0
 - Median : 4.0
 - Minimum : 4.0
@@ -45,7 +45,7 @@
 
 ### Health Checks Total
 
-- Samples : 2
+- Samples : 3
 - Average : 2.0
 - Median : 2.0
 - Minimum : 2.0
@@ -53,7 +53,7 @@
 
 ### Health Checks Passed
 
-- Samples : 2
+- Samples : 3
 - Average : 2.0
 - Median : 2.0
 - Minimum : 2.0
@@ -61,7 +61,7 @@
 
 ### Health Success Rate
 
-- Samples : 2
+- Samples : 3
 - Average : 100.0
 - Median : 100.0
 - Minimum : 100.0
