@@ -9,6 +9,7 @@ The platform combines FastAPI microservices, GraphQL, LangGraph, OpenRouter, AWS
 ## Table of Contents
 
 - Project Overview
+- Project Highlights
 - Problem Statement
 - Key Features
 - System Architecture
@@ -35,6 +36,28 @@ The AI Cloud Cost Intelligence Engine demonstrates how an event-driven cloud-nat
 Instead of processing requests synchronously, services communicate using asynchronous events, allowing the platform to scale while remaining loosely coupled.
 
 The project combines modern backend engineering practices with AI-powered reasoning to generate cloud cost optimization recommendations.
+
+---
+
+# 🚀 Project Highlights
+
+The AI Cloud Cost Intelligence Engine combines event-driven microservices, AI-powered reasoning, cloud-native deployment, and automated DevOps practices into a scalable cloud cost intelligence platform.
+
+| Category | Achievement |
+|----------|-------------|
+| 🏗️ Architecture | Event-Driven Microservices Architecture with GraphQL API Gateway |
+| ⚙️ Backend Services | Independent Ingestion, Analytics, Intelligence, Storage and GraphQL Gateway microservices |
+| 🤖 AI Pipeline | LangGraph orchestration with OpenRouter LLM for intelligent cloud cost recommendations |
+| ☁️ Cloud Platform | Deployed on AWS using EC2, S3, CloudFront, API Gateway, Lambda and Amazon SQS |
+| 🚀 CI/CD | Fully automated CI/CD pipeline using GitHub Actions and Docker |
+| 📊 Deployment Benchmarking | Automatically generates deployment history, statistics and benchmark summary after every successful deployment |
+| 📧 Deployment Reporting | Automated HTML deployment reports delivered through Amazon SES after every successful deployment |
+| ⚡ Query Optimization | Reduced GraphQL query execution time from **256 ms** to approximately **50 ms** using database indexing (**~80% improvement**) |
+| ⏱️ Deployment Optimization | Reduced average deployment duration from **255 seconds** to approximately **133 seconds** (**~48% improvement**) |
+| ❤️ Health Verification | Automated deployment validation with **100% successful health checks** |
+| 🐳 Container Orchestration | Automatically deploys and verifies **4 Dockerized backend services** |
+| 📈 Observability | Custom benchmark engine continuously records deployment metrics for performance analysis and historical comparison |
+| 🔄 Event Processing | Loosely coupled asynchronous communication through Amazon SQS enabling scalable event-driven processing |
 
 ---
 
@@ -76,13 +99,13 @@ This project demonstrates how AI and distributed systems can work together to:
 
 ## Overall AWS Architecture
 
-![AWS Architecture](assets/architecture/aws-overall-architecture.png)
+![AWS Architecture](assets/architecture/overall-system-architecture.png)
 
 ---
 
 ## Backend Architecture
 
-![Backend Architecture](assets/architecture/backend-system-architecture.png)
+![Backend Architecture](assets/architecture/backend-microservices.png)
 
 ---
 
@@ -100,7 +123,7 @@ This project demonstrates how AI and distributed systems can work together to:
 
 ## Deployment Monitoring & Benchmarking
 
-![Deployment Monitoring](assets/architecture/deployment-monitoring-benchmarking.png)
+![Deployment Monitoring](assets/architecture/deployment-monitoring.png)
 
 ---
 
