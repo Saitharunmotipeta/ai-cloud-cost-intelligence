@@ -271,34 +271,6 @@ Deployment history is automatically stored for future analysis.
 
 ---
 
-## AWS Deployment
-
-### EC2 Instance
-
-![EC2](assets/screenshots/aws/ec2-instance.png)
-
-### Amazon S3
-
-![S3](assets/screenshots/aws/s3-bucket.png)
-
-### CloudFront
-
-![CloudFront](assets/screenshots/aws/cloudfront-distribution.png)
-
-### API Gateway
-
-![API Gateway](assets/screenshots/aws/api-gateway.png)
-
-### Amazon SQS
-
-![SQS](assets/screenshots/aws/sqs-queue.png)
-
-### AWS Lambda
-
-![Lambda](assets/screenshots/aws/lambda-function.png)
-
----
-
 # Project Structure
 
 ```text
