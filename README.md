@@ -275,19 +275,19 @@ Deployment history is automatically stored for future analysis.
 
 ### EC2 Instance
 
-![EC2](assets/screenshots/aws/ec2-instance.png)
+![EC2](assets/screenshots/aws/ec2-instance.jpeg)
 
 ### Amazon S3
 
-![S3](assets/screenshots/aws/s3-bucket.png)
+![S3](assets/screenshots/aws/s3-bucket.jpeg)
 
 ### CloudFront
 
-![CloudFront](assets/screenshots/aws/cloudfront-distribution.png)
+![CloudFront](assets/screenshots/aws/cloudfront-distribution.jpeg)
 
 ### API Gateway
 
-![API Gateway](assets/screenshots/aws/api-gateway.png)
+![API Gateway](assets/screenshots/aws/api-gateway.jpeg)
 
 ### Amazon SQS
 
@@ -295,7 +295,7 @@ Deployment history is automatically stored for future analysis.
 
 ### AWS Lambda
 
-![Lambda](assets/screenshots/aws/lambda-function.png)
+![Lambda](assets/screenshots/aws/lambda-function.jpeg)
 
 ---
 
