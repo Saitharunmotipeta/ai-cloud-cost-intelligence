@@ -1,53 +1,53 @@
 {
-    "deployment_count": 7,
-    "successful_deployments": 7,
+    "deployment_count": 8,
+    "successful_deployments": 8,
     "failed_deployments": 0,
     "success_rate": 100.0,
     "metrics": {
         "deployment_duration_sec": {
-            "count": 6,
-            "average": 172.83,
-            "median": 151.0,
+            "count": 7,
+            "average": 170.14,
+            "median": 153.0,
             "minimum": 53.0,
             "maximum": 380.0
         },
         "backend_build_duration_sec": {
-            "count": 5,
-            "average": 98.2,
-            "median": 118.0,
+            "count": 6,
+            "average": 101.83,
+            "median": 119.0,
             "minimum": 21.0,
             "maximum": 122.0
         },
         "frontend_build_size_kb": {
-            "count": 5,
+            "count": 6,
             "average": 860.0,
             "median": 860.0,
             "minimum": 860.0,
             "maximum": 860.0
         },
         "containers_running": {
-            "count": 6,
+            "count": 7,
             "average": 4.0,
             "median": 4.0,
             "minimum": 4.0,
             "maximum": 4.0
         },
         "health_checks_total": {
-            "count": 6,
+            "count": 7,
             "average": 2.0,
             "median": 2.0,
             "minimum": 2.0,
             "maximum": 2.0
         },
         "health_checks_passed": {
-            "count": 6,
+            "count": 7,
             "average": 2.0,
             "median": 2.0,
             "minimum": 2.0,
             "maximum": 2.0
         },
         "health_success_rate": {
-            "count": 6,
+            "count": 7,
             "average": 100.0,
             "median": 100.0,
             "minimum": 100.0,
